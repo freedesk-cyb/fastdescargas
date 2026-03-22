@@ -17,11 +17,23 @@ logging.basicConfig(level=logging.INFO)
 DATABASE_URL = os.environ.get('DATABASE_URL')
 
 if DATABASE_URL:
-    import psycopg2
-    import psycopg2.extras
+    import pg8000.native
+    import pg8000.dbapi
+    from urllib.parse import urlparse
     PH = '%s'  # Placeholder para PostgreSQL
+
+    _parsed = urlparse(DATABASE_URL)
+    _PG = dict(
+        host=_parsed.hostname,
+        port=_parsed.port or 5432,
+        database=_parsed.path.lstrip('/'),
+        user=_parsed.username,
+        password=_parsed.password,
+        ssl_context=True
+    )
+
     def get_db_connection():
-        conn = psycopg2.connect(DATABASE_URL, sslmode='require')
+        conn = pg8000.dbapi.connect(**_PG)
         conn.autocommit = False
         return conn
     def fetchrow(cursor):
@@ -33,7 +45,7 @@ if DATABASE_URL:
         rows = cursor.fetchall()
         cols = [d[0] for d in cursor.description]
         return [dict(zip(cols, r)) for r in rows]
-    logging.info("🐘 Usando PostgreSQL (producción)")
+    logging.info("🐘 Usando PostgreSQL/pg8000 (producción)")
 else:
     import sqlite3
     PH = '?'  # Placeholder para SQLite
