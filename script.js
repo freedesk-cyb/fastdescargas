@@ -176,18 +176,55 @@ document.addEventListener('DOMContentLoaded', () => {
             videoPlaceholderIcon.style.display = 'none';
         }
 
-        const downloadUrl = `${backendUrl}/api/download?url=${encodeURIComponent(originalUrl)}&token=${currentUser.token}`;
+        const directUrlEndpoint = `${backendUrl}/api/get-direct-url?url=${encodeURIComponent(originalUrl)}`;
 
         downloadOptions.innerHTML = `
-            <a href="${downloadUrl}" class="btn-primary" style="text-decoration:none; padding: 1rem 2rem; width: 100%; justify-content: center; font-size: 1.1rem; border: none; cursor: pointer; background: var(--primary); color: white; border-radius: 12px; display: flex; align-items: center; gap: 8px; transition: all 0.3s;">
-                <i data-lucide="download" style="width:20px"></i> Descargar Nativamente (MP4)
-            </a>
-            <div style="font-size: 0.85rem; color: var(--text-muted); text-align: center; margin-top: 10px; width: 100%;">
-                La descarga será procesada por tu backend local sin pestañas nuevas. (Autorizado)
-            </div>
+            <button id="btn-dl-main" class="btn-primary" style="text-decoration:none; padding: 1rem 2rem; width: 100%; justify-content: center; font-size: 1.1rem; border-radius: 12px; display: flex; align-items: center; gap: 8px;">
+                <i data-lucide="download" style="width:20px"></i> <span id="btn-dl-text">Descargar MP4</span>
+            </button>
+            <div id="dl-status" style="font-size: 0.85rem; color: var(--text-muted); text-align: center; margin-top: 10px; width: 100%;"></div>
         `;
         
         lucide.createIcons();
+        
+        document.getElementById('btn-dl-main').addEventListener('click', async () => {
+            const btn = document.getElementById('btn-dl-main');
+            const btnText = document.getElementById('btn-dl-text');
+            const status = document.getElementById('dl-status');
+            
+            btn.disabled = true;
+            btnText.textContent = 'Preparando descarga...';
+            status.textContent = 'Obteniendo enlace directo, esto puede tomar unos segundos...';
+            
+            try {
+                const res = await fetch(directUrlEndpoint, {
+                    headers: { 'Authorization': `Bearer ${currentUser.token}` }
+                });
+                const data = await res.json();
+                
+                if (data.url) {
+                    status.textContent = '✅ ¡Descarga iniciándose! No cierres esta pestaña.';
+                    // Crear un enlace oculto y hacer clic para descargar sin navegar
+                    const a = document.createElement('a');
+                    a.href = data.url;
+                    a.download = data.filename || 'video.mp4';
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                } else {
+                    status.textContent = '❌ ' + (data.error || 'Error al obtener el video.');
+                }
+            } catch(e) {
+                status.textContent = '❌ Error de conexión con el servidor.';
+            } finally {
+                setTimeout(() => {
+                    btn.disabled = false;
+                    btnText.textContent = 'Descargar MP4';
+                    lucide.createIcons();
+                }, 4000);
+            }
+        });
+        
         resultArea.style.display = 'block';
         resultArea.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }

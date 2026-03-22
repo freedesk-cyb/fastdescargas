@@ -284,54 +284,33 @@ def get_metadata():
         logging.error(f"Error getting metadata: {e}")
         return jsonify({"error": "No se pudo obtener la información del video."}), 500
 
-@app.route('/api/download', methods=['GET'])
-def download_video():
+@app.route('/api/get-direct-url', methods=['GET'])
+def get_direct_url():
     if not is_authorized(request):
-        return jsonify({"error": "Acceso denegado. Sessión inválida."}), 401
+        return jsonify({"error": "Acceso denegado."}), 401
         
     url = request.args.get('url')
     if not url:
         return jsonify({"error": "No URL provided"}), 400
         
-    # Obtenemos el título real para nombrar el archivo correctamente
     try:
-        title_cmd = get_yt_dlp_cmd() + ['--get-title', url]
-        title = subprocess.check_output(title_cmd, stderr=subprocess.DEVNULL).decode('utf-8').strip()
-        filename = f"{clean_filename(title)}.mp4"
-    except Exception as e:
-        logging.error(f"Error getting title before download: {e}")
-        filename = "Fastvideo_Download.mp4"
+        # Obtenemos la URL directa del CDN de YouTube (sin descargar nada)
+        cmd = get_yt_dlp_cmd() + ['-g', '-f', 'best[ext=mp4]/best', url]
+        direct_url = subprocess.check_output(cmd, stderr=subprocess.DEVNULL, timeout=30).decode('utf-8').strip()
         
-    # Stream the video directamente desde YouTube. 
-    # 'best[ext=mp4]/best' descargará un MP4 unificado (video+audio) si existe, evitando el uso de ffmpeg.
-    cmd = get_yt_dlp_cmd() + ['-f', 'best[ext=mp4]/best', '-o', '-', url]
-    
-    process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
-    
-    headers = {
-        'Content-Disposition': f'attachment; filename="{filename}"',
-        'Content-Type': 'video/mp4'
-    }
-    
-    # Generador para transmitir el contenido del video según se descarga
-    def generate():
+        # Obtenemos el título para el nombre del archivo
+        title = "Fastvideo_Download"
         try:
-            while True:
-                chunk = process.stdout.read(8192)
-                if not chunk:
-                    break
-                yield chunk
-        except GeneratorExit:
-            # Si el usuario cancela la descarga, detenemos el proceso
-            logging.info("Descarga cancelada por el usuario.")
-            process.terminate()
-        except Exception as e:
-            logging.error(f"Error transmitiendo stream: {e}")
-            process.terminate()
-        finally:
-            process.wait()
-
-    return Response(generate(), headers=headers)
+            title_cmd = get_yt_dlp_cmd() + ['--get-title', url]
+            title = subprocess.check_output(title_cmd, stderr=subprocess.DEVNULL, timeout=15).decode('utf-8').strip()
+            title = clean_filename(title)
+        except:
+            pass
+        
+        return jsonify({"url": direct_url, "filename": f"{title}.mp4"})
+    except Exception as e:
+        logging.error(f"Error obteniendo URL directa: {e}")
+        return jsonify({"error": "No se pudo obtener la URL de descarga."}), 500
 
 if __name__ == '__main__':
     print("="*50)
