@@ -2,6 +2,9 @@ import subprocess
 import json
 import logging
 import sys
+import sqlite3
+import secrets
+from werkzeug.security import generate_password_hash, check_password_hash
 from flask import Flask, request, Response, jsonify
 from flask_cors import CORS
 
@@ -11,8 +14,172 @@ CORS(app)
 
 logging.basicConfig(level=logging.INFO)
 
+# --- CONFIGURACIÓN BASE DE DATOS ---
+DB_PATH = 'database.db'
+
+def get_db_connection():
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    return conn
+
+def init_db():
+    conn = get_db_connection()
+    c = conn.cursor()
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT UNIQUE NOT NULL,
+            password_hash TEXT NOT NULL,
+            role TEXT NOT NULL DEFAULT 'user',
+            token TEXT
+        )
+    ''')
+    # Validar si el admin base existe
+    c.execute('SELECT * FROM users WHERE username = ?', ('admin',))
+    if not c.fetchone():
+        admin_hash = generate_password_hash('admin')
+        c.execute('INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)',
+                  ('admin', admin_hash, 'admin'))
+        logging.info("📝 Creado el usuario por defecto: username 'admin' | password 'admin'.")
+    conn.commit()
+    conn.close()
+
+init_db()
+
+def get_user_from_token(token):
+    if not token: return None
+    conn = get_db_connection()
+    user = conn.execute('SELECT * FROM users WHERE token = ?', (token,)).fetchone()
+    conn.close()
+    return user
+
+# --- ENDPOINTS MIDDLEWARE - PROTECCIÓN ---
+
+def is_authorized(request_obj, required_role=None):
+    # Soporta token en Authorization header o en querystring (para el <a> tag de descarga nativa)
+    token = request_obj.headers.get('Authorization')
+    if not token and request_obj.args.get('token'):
+        token = request_obj.args.get('token')
+        
+    if token and token.startswith('Bearer '):
+        token = token.split(' ')[1]
+        
+    user = get_user_from_token(token)
+    if not user: return None
+    if required_role and user['role'] != required_role: return None
+    return user
+
+# --- RUTAS DE AUTENTICACIÓN Y ADMINISTRACIÓN ---
+
+@app.route('/api/login', methods=['POST'])
+def login():
+    data = request.json
+    username = data.get('username')
+    password = data.get('password')
+    
+    if not username or not password:
+        return jsonify({"error": "Faltan credenciales"}), 400
+        
+    conn = get_db_connection()
+    user = conn.execute('SELECT * FROM users WHERE username = ?', (username,)).fetchone()
+    if user and check_password_hash(user['password_hash'], password):
+        token = secrets.token_hex(20)
+        conn.execute('UPDATE users SET token = ? WHERE id = ?', (token, user['id']))
+        conn.commit()
+        conn.close()
+        return jsonify({"token": token, "username": user['username'], "role": user['role']})
+        
+    conn.close()
+    return jsonify({"error": "Usuario o contraseña incorrectos"}), 401
+
+@app.route('/api/admin/users', methods=['GET'])
+def get_users():
+    admin_user = is_authorized(request, 'admin')
+    if not admin_user: return jsonify({"error": "Acceso denegado"}), 403
+        
+    conn = get_db_connection()
+    users = conn.execute('SELECT id, username, role FROM users').fetchall()
+    conn.close()
+    return jsonify([dict(u) for u in users])
+
+@app.route('/api/admin/users', methods=['POST'])
+def create_user():
+    admin_user = is_authorized(request, 'admin')
+    if not admin_user: return jsonify({"error": "Acceso denegado"}), 403
+        
+    data = request.json
+    username = data.get('username')
+    password = data.get('password')
+    role = data.get('role', 'user')
+    
+    if not username or not password:
+        return jsonify({"error": "Datos incompletos"}), 400
+        
+    conn = get_db_connection()
+    try:
+        pw_hash = generate_password_hash(password)
+        conn.execute('INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)',
+                     (username, pw_hash, role))
+        conn.commit()
+    except sqlite3.IntegrityError:
+        conn.close()
+        return jsonify({"error": "Ese nombre de usuario ya existe"}), 409
+    conn.close()
+    return jsonify({"success": True}), 201
+
+@app.route('/api/admin/users/<int:user_id>', methods=['DELETE'])
+def delete_user(user_id):
+    admin_user = is_authorized(request, 'admin')
+    if not admin_user: return jsonify({"error": "Acceso denegado"}), 403
+        
+    if admin_user['id'] == user_id:
+        return jsonify({"error": "No puedes eliminarte a ti mismo"}), 400
+        
+    conn = get_db_connection()
+    conn.execute('DELETE FROM users WHERE id = ?', (user_id,))
+    conn.commit()
+    conn.close()
+    return jsonify({"success": True})
+    
+@app.route('/api/admin/users/<int:user_id>', methods=['PUT'])
+def update_user(user_id):
+    admin_user = is_authorized(request, 'admin')
+    if not admin_user: return jsonify({"error": "Acceso denegado"}), 403
+        
+    data = request.json
+    username = data.get('username')
+    password = data.get('password')
+    role = data.get('role')
+    
+    conn = get_db_connection()
+    user = conn.execute('SELECT * FROM users WHERE id = ?', (user_id,)).fetchone()
+    if not user:
+        conn.close()
+        return jsonify({"error": "Usuario no encontrado"}), 404
+        
+    try:
+        if username:
+            conn.execute('UPDATE users SET username = ? WHERE id = ?', (username, user_id))
+        if password:
+            pw_hash = generate_password_hash(password)
+            conn.execute('UPDATE users SET password_hash = ? WHERE id = ?', (pw_hash, user_id))
+            conn.execute('UPDATE users SET token = NULL WHERE id = ?', (user_id,))
+        if role:
+            if user_id == admin_user['id'] and role != 'admin':
+                return jsonify({"error": "No puedes revocar tus propios admin rights"}), 400
+            conn.execute('UPDATE users SET role = ? WHERE id = ?', (role, user_id))
+        conn.commit()
+    except sqlite3.IntegrityError:
+        conn.close()
+        return jsonify({"error": "Usuario ya existe"}), 409
+        
+    conn.close()
+    return jsonify({"success": True})
+
+# --- ENDPOINTS DE DESCARGADOR ---
+
 def get_yt_dlp_cmd():
-    return [sys.executable, '-m', 'yt_dlp']
+    return [sys.executable, '-m', 'yt_dlp', '--no-playlist']
 
 def clean_filename(title):
     import re
@@ -22,6 +189,9 @@ def clean_filename(title):
 
 @app.route('/api/metadata', methods=['GET'])
 def get_metadata():
+    if not is_authorized(request):
+        return jsonify({"error": "Acceso denegado. Debes iniciar sesión."}), 401
+        
     url = request.args.get('url')
     if not url:
         return jsonify({"error": "No URL provided"}), 400
@@ -43,6 +213,9 @@ def get_metadata():
 
 @app.route('/api/download', methods=['GET'])
 def download_video():
+    if not is_authorized(request):
+        return jsonify({"error": "Acceso denegado. Sessión inválida."}), 401
+        
     url = request.args.get('url')
     if not url:
         return jsonify({"error": "No URL provided"}), 400

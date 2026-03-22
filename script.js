@@ -1,4 +1,27 @@
 document.addEventListener('DOMContentLoaded', () => {
+    // Auth Variables
+    const API_URL = 'http://127.0.0.1:5000';
+    let currentUser = {
+        token: localStorage.getItem('fastvideo_token'),
+        username: localStorage.getItem('fastvideo_username'),
+        role: localStorage.getItem('fastvideo_role')
+    };
+
+    // UI Elements for Auth
+    const loginView = document.getElementById('login-view');
+    const appView = document.getElementById('app-view');
+    const adminView = document.getElementById('admin-view');
+    const navbar = document.getElementById('navbar');
+    const userGreeting = document.getElementById('user-greeting');
+    const btnAdminNav = document.getElementById('btn-admin-nav');
+    const btnAppNav = document.getElementById('btn-app-nav');
+    const btnLogout = document.getElementById('btn-logout');
+
+    const btnLogin = document.getElementById('btn-login');
+    const loginUserInp = document.getElementById('login-username');
+    const loginPassInp = document.getElementById('login-password');
+    const loginError = document.getElementById('login-error');
+
     const btnFetch = document.getElementById('btn-fetch');
     const inputUrl = document.getElementById('video-url');
     const resultArea = document.getElementById('result-area');
@@ -14,6 +37,90 @@ document.addEventListener('DOMContentLoaded', () => {
     const downloadOptions = document.querySelector('.download-options');
 
     const ytRegex = /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\/.+$/;
+
+    // Router Logic
+    function navigateTo(view) {
+        loginView.style.display = 'none';
+        appView.style.display = 'none';
+        adminView.style.display = 'none';
+        
+        if (view === 'login') {
+            navbar.style.display = 'none';
+            loginView.style.display = 'flex';
+        } else {
+            navbar.style.display = 'flex';
+            userGreeting.textContent = `Hola, ${currentUser.username}`;
+            userGreeting.style.display = 'inline-block';
+            
+            btnAdminNav.style.display = (currentUser.role === 'admin' && view !== 'admin') ? 'inline-block' : 'none';
+            btnAppNav.style.display = (view !== 'app') ? 'inline-block' : 'none';
+            
+            if (view === 'app') {
+                appView.style.display = 'block';
+                inputUrl.focus();
+            }
+            if (view === 'admin') {
+                adminView.style.display = 'block';
+                loadUsers();
+            }
+        }
+    }
+
+    function checkAuth() {
+        if (currentUser.token) navigateTo('app');
+        else navigateTo('login');
+    }
+
+    // Login Events
+    btnLogin.addEventListener('click', async () => {
+        const username = loginUserInp.value.trim();
+        const password = loginPassInp.value;
+        if (!username || !password) return;
+        
+        btnLogin.disabled = true;
+        btnLogin.innerHTML = '<i data-lucide="loader" class="spin" style="width: 18px; margin-right: 8px;"></i> Ingresando...';
+        lucide.createIcons();
+        
+        try {
+            const res = await fetch(`${API_URL}/api/login`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password })
+            });
+            const data = await res.json();
+            if (res.ok) {
+                localStorage.setItem('fastvideo_token', data.token);
+                localStorage.setItem('fastvideo_username', data.username);
+                localStorage.setItem('fastvideo_role', data.role);
+                loginError.style.display = 'none';
+                currentUser = data;
+                navigateTo('app');
+            } else {
+                loginError.textContent = data.error;
+                loginError.style.display = 'block';
+            }
+        } catch (e) {
+            loginError.textContent = "Error de conexión con el backend (app.py apagado).";
+            loginError.style.display = 'block';
+        } finally {
+            btnLogin.disabled = false;
+            btnLogin.innerHTML = '<i data-lucide="log-in" style="width: 18px; margin-right: 8px;"></i> Ingresar';
+            lucide.createIcons();
+        }
+    });
+
+    btnLogout.addEventListener('click', () => {
+        localStorage.clear();
+        currentUser = { token: null, username: null, role: null };
+        loginUserInp.value = '';
+        loginPassInp.value = '';
+        navigateTo('login');
+    });
+
+    btnAdminNav.addEventListener('click', () => navigateTo('admin'));
+    btnAppNav.addEventListener('click', () => navigateTo('app'));
+
+    checkAuth();
 
     inputUrl.focus();
 
@@ -33,17 +140,23 @@ document.addEventListener('DOMContentLoaded', () => {
         startLoading();
 
         try {
-            // Intento 1: API de Backend Local (app.py)
-            const backendUrl = 'http://127.0.0.1:5000';
-            const metadataResponse = await fetch(`${backendUrl}/api/metadata?url=${encodeURIComponent(url)}`);
+            // Intento 1: API de Backend Local (app.py) protegido con token
+            const metadataResponse = await fetch(`${API_URL}/api/metadata?url=${encodeURIComponent(url)}`, {
+                headers: { 'Authorization': `Bearer ${currentUser.token}` }
+            });
             
+            if (metadataResponse.status === 401 || metadataResponse.status === 403) {
+                btnLogout.click(); // Sesión expirada
+                return;
+            }
+
             if (metadataResponse.ok) {
                 const metadata = await metadataResponse.json();
-                showInPageResultLocal(url, metadata, backendUrl);
+                showInPageResultLocal(url, metadata, API_URL);
             } else {
-                // El server local falló (probablemente no está corriendo)
                 throw new Error('Servidor local apagado o error de metadata');
             }
+
 
         } catch (error) {
             console.error('Download System Error:', error);
@@ -63,14 +176,14 @@ document.addEventListener('DOMContentLoaded', () => {
             videoPlaceholderIcon.style.display = 'none';
         }
 
-        const downloadUrl = `${backendUrl}/api/download?url=${encodeURIComponent(originalUrl)}`;
+        const downloadUrl = `${backendUrl}/api/download?url=${encodeURIComponent(originalUrl)}&token=${currentUser.token}`;
 
         downloadOptions.innerHTML = `
             <a href="${downloadUrl}" class="btn-primary" style="text-decoration:none; padding: 1rem 2rem; width: 100%; justify-content: center; font-size: 1.1rem; border: none; cursor: pointer; background: var(--primary); color: white; border-radius: 12px; display: flex; align-items: center; gap: 8px; transition: all 0.3s;">
                 <i data-lucide="download" style="width:20px"></i> Descargar Nativamente (MP4)
             </a>
             <div style="font-size: 0.85rem; color: var(--text-muted); text-align: center; margin-top: 10px; width: 100%;">
-                La descarga será procesada por tu backend local sin pestañas nuevas.
+                La descarga será procesada por tu backend local sin pestañas nuevas. (Autorizado)
             </div>
         `;
         
@@ -136,5 +249,136 @@ document.addEventListener('DOMContentLoaded', () => {
         const regExp = /^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))\??v?=?([^#&?]*).*/;
         const match = url.match(regExp);
         return (match && match[7].length == 11) ? match[7] : false;
+    }
+
+    // --- Admin Dashboard Logic ---
+    const btnShowAddUser = document.getElementById('btn-show-add-user');
+    const addUserForm = document.getElementById('add-user-form');
+    const btnSaveUser = document.getElementById('btn-save-user');
+    const btnCancelUser = document.getElementById('btn-cancel-user');
+    const inUsername = document.getElementById('new-username');
+    const inPassword = document.getElementById('new-password');
+    const inRole = document.getElementById('new-role');
+    const editUserId = document.getElementById('edit-user-id');
+
+    btnShowAddUser.addEventListener('click', () => {
+        addUserForm.style.display = 'block';
+        editUserId.value = '';
+        inUsername.value = '';
+        inPassword.value = '';
+        inRole.value = 'user';
+        inUsername.focus();
+    });
+
+    btnCancelUser.addEventListener('click', () => {
+        addUserForm.style.display = 'none';
+    });
+
+    btnSaveUser.addEventListener('click', async () => {
+        const username = inUsername.value.trim();
+        const password = inPassword.value;
+        const role = inRole.value;
+        const id = editUserId.value;
+
+        if (!username || (!password && !id)) {
+            showToast("Datos incompletos.");
+            return;
+        }
+
+        const method = id ? 'PUT' : 'POST';
+        const url = id ? `${API_URL}/api/admin/users/${id}` : `${API_URL}/api/admin/users`;
+        const payload = { username, role };
+        if (password) payload.password = password;
+
+        try {
+            const res = await fetch(url, {
+                method: method,
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${currentUser.token}`
+                },
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json();
+            if (res.ok) {
+                showToast(id ? "Usuario actualizado." : "Usuario creado.");
+                addUserForm.style.display = 'none';
+                loadUsers();
+            } else {
+                showToast(data.error);
+            }
+        } catch (e) {
+            showToast("Error de conexión.");
+        }
+    });
+
+    async function loadUsers() {
+        try {
+            const res = await fetch(`${API_URL}/api/admin/users`, {
+                headers: { 'Authorization': `Bearer ${currentUser.token}` }
+            });
+            if (res.status === 401 || res.status === 403) {
+                btnLogout.click(); return;
+            }
+            const users = await res.json();
+            const tbody = document.getElementById('users-table-body');
+            tbody.innerHTML = '';
+            users.forEach(u => {
+                const tr = document.createElement('tr');
+                tr.style.borderBottom = '1px solid rgba(255, 255, 255, 0.05)';
+                tr.innerHTML = `
+                    <td style="padding: 1rem 1.5rem;">${u.id}</td>
+                    <td style="padding: 1rem 1.5rem; font-weight: bold;">${u.username}</td>
+                    <td style="padding: 1rem 1.5rem;">
+                        <span style="background: ${u.role==='admin'?'var(--primary)':'rgba(255,255,255,0.1)'}; padding: 3px 8px; border-radius: 4px; font-size: 0.8rem;">
+                            ${u.role}
+                        </span>
+                    </td>
+                    <td style="padding: 1rem 1.5rem; text-align: right;">
+                        <button class="btn-edit" data-id="${u.id}" data-user="${u.username}" data-role="${u.role}" style="background:transparent; border:none; color:white; cursor:pointer; margin-right:15px;" title="Editar"><i data-lucide="edit-2" style="width:16px;"></i></button>
+                        ${u.username !== currentUser.username ? `<button class="btn-del" data-id="${u.id}" style="background:transparent; border:none; color:#ff6b6b; cursor:pointer;" title="Eliminar"><i data-lucide="trash-2" style="width:16px;"></i></button>` : ''}
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+            lucide.createIcons();
+            
+            document.querySelectorAll('.btn-edit').forEach(b => {
+                b.addEventListener('click', (e) => {
+                    const btn = e.currentTarget;
+                    editUserId.value = btn.dataset.id;
+                    inUsername.value = btn.dataset.user;
+                    inRole.value = btn.dataset.role;
+                    inPassword.value = '';
+                    addUserForm.style.display = 'block';
+                    inUsername.focus();
+                });
+            });
+
+            document.querySelectorAll('.btn-del').forEach(b => {
+                b.addEventListener('click', async (e) => {
+                    if(!confirm("¿Seguro que deseas eliminar este usuario?")) return;
+                    const id = e.currentTarget.dataset.id;
+                    try {
+                        const res = await fetch(`${API_URL}/api/admin/users/${id}`, {
+                            method: 'DELETE',
+                            headers: { 'Authorization': `Bearer ${currentUser.token}` }
+                        });
+                        if(res.ok) {
+                            showToast("Usuario eliminado.");
+                            loadUsers();
+                        } else {
+                            const data = await res.json();
+                            showToast(data.error);
+                        }
+                    } catch(e) {
+                        showToast("Error de red.");
+                    }
+                });
+            });
+
+        } catch(e) {
+            showToast("Error cargando tabla de usuarios.");
+        }
     }
 });
