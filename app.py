@@ -305,13 +305,35 @@ def get_direct_url():
         return jsonify({"error": "No URL provided"}), 400
         
     try:
-        # Usamos el cliente Android que evita bloqueos de IP en la nube
-        cmd = get_yt_dlp_cmd() + [
-            '-g', '-f', 'best[ext=mp4]/best', 
-            '--extractor-args', 'youtube:player_client=android',
-            url
-        ]
-        direct_url = subprocess.check_output(cmd, stderr=subprocess.DEVNULL, timeout=30).decode('utf-8').strip()
+        # Probamos múltiples clientes de YouTube en cascada hasta que uno funcione
+        clients = ['android', 'ios', 'mweb', 'android_embedded', 'web']
+        direct_url = None
+        last_error = None
+        
+        for client in clients:
+            try:
+                cmd = get_yt_dlp_cmd() + [
+                    '-g', '-f', 'best[ext=mp4]/best',
+                    '--extractor-args', f'youtube:player_client={client}',
+                    url
+                ]
+                result = subprocess.check_output(cmd, stderr=subprocess.DEVNULL, timeout=25).decode('utf-8').strip()
+                if result and result.startswith('http'):
+                    direct_url = result
+                    logging.info(f"✅ URL obtenida con cliente: {client}")
+                    break
+            except Exception as e:
+                last_error = e
+                logging.warning(f"Cliente {client} falló: {e}")
+                continue
+        
+        if not direct_url:
+            # Último intento sin especificar cliente
+            try:
+                cmd = get_yt_dlp_cmd() + ['-g', '-f', 'best[ext=mp4]/best', url]
+                direct_url = subprocess.check_output(cmd, stderr=subprocess.DEVNULL, timeout=25).decode('utf-8').strip()
+            except Exception as e:
+                raise Exception(f"Todos los clientes fallaron. Último error: {e}")
         
         # Obtenemos el título para el nombre del archivo
         title = "Fastvideo_Download"
