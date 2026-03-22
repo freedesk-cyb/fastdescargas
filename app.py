@@ -307,10 +307,24 @@ def get_direct_url():
     try:
         import urllib.request as ureq
         import urllib.parse as uparse
+        import urllib.error
+        
+        # Limpiamos la URL para remover parámetros de playlist (&list=...) 
+        # que pueden dar error en Cobalt al intentar procesarlos como video único.
+        clean_url = url
+        if 'youtube.com/watch' in url:
+            parsed_url = uparse.urlparse(url)
+            qs = uparse.parse_qs(parsed_url.query)
+            if 'v' in qs:
+                clean_url = f"https://www.youtube.com/watch?v={qs['v'][0]}"
+        elif 'youtu.be/' in url:
+            clean_url = url.split('?')[0]
+            
+        logging.info(f"🚀 Solicitando Cobalt para: {clean_url}")
         
         # Usamos Cobalt.tools API — diseñada para esto, no bloqueada por YouTube
         cobalt_payload = json.dumps({
-            "url": url,
+            "url": clean_url,
             "downloadMode": "auto",
             "videoQuality": "720",
             "filenameStyle": "classic"
@@ -321,29 +335,36 @@ def get_direct_url():
             data=cobalt_payload,
             headers={
                 "Content-Type": "application/json",
-                "Accept": "application/json",
-                "User-Agent": "Fastvideo/1.0"
+                "Accept": "application/json"
             },
             method="POST"
         )
         
-        with ureq.urlopen(cobalt_req, timeout=20) as resp:
-            cobalt_data = json.loads(resp.read().decode('utf-8'))
+        try:
+            with ureq.urlopen(cobalt_req, timeout=30) as resp:
+                cobalt_data = json.loads(resp.read().decode('utf-8'))
+        except urllib.error.HTTPError as e:
+            error_body = e.read().decode('utf-8')
+            logging.error(f"Cobalt HTTP Error {e.code}: {error_body}")
+            return jsonify({"error": f"API de descarga falló (Error {e.code}): {error_body}"}), 500
         
         logging.info(f"Cobalt response status: {cobalt_data.get('status')}")
         
         download_url = None
         if cobalt_data.get('status') in ('redirect', 'tunnel', 'stream'):
             download_url = cobalt_data.get('url')
+        elif cobalt_data.get('status') == 'error':
+            error_text = cobalt_data.get('error', {}).get('code', 'desconocido')
+            return jsonify({"error": f"Error del servidor de descarga: {error_text}"}), 500
         
         if not download_url:
-            return jsonify({"error": f"Cobalt no pudo procesar el video: {cobalt_data.get('error', {}).get('code', 'desconocido')}"}), 500
+            return jsonify({"error": "No se recibió una URL válida del servidor de descarga."}), 500
         
-        # Extraer título del video_id usando oEmbed (ya lo teníamos)
+        # Extraer título del video usando oEmbed
         title = "Fastvideo_Download"
         try:
-            oembed_url = f"https://www.youtube.com/oembed?url={uparse.quote(url)}&format=json"
-            with ureq.urlopen(oembed_url, timeout=8) as r:
+            oembed_url = f"https://www.youtube.com/oembed?url={uparse.quote(clean_url)}&format=json"
+            with ureq.urlopen(oembed_url, timeout=10) as r:
                 oembed = json.loads(r.read().decode('utf-8'))
                 title = clean_filename(oembed.get('title', title))
         except:
@@ -352,12 +373,10 @@ def get_direct_url():
         return jsonify({"url": download_url, "filename": f"{title}.mp4"})
         
     except Exception as e:
-        logging.error(f"Error con Cobalt API: {e}")
-        return jsonify({"error": "No se pudo obtener la URL de descarga."}), 500
+        logging.error(f"Error crítico con API de descarga: {e}")
+        return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':
     print("="*50)
     print("🚀 Iniciando el servidor Backend de Fastvideo en el puerto 5000...")
-    print("⚠️ Asegúrate de mantener esta ventana abierta mientras usas la página.")
-    print("="*50)
     app.run(port=5000, threaded=True)
