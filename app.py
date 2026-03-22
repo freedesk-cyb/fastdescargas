@@ -268,20 +268,31 @@ def get_metadata():
     url = request.args.get('url')
     if not url:
         return jsonify({"error": "No URL provided"}), 400
-        
+    
     try:
-        # Usa yt-dlp para obtener metadata en formato JSON
-        cmd = get_yt_dlp_cmd() + ['-j', '--no-warnings', url]
-        output = subprocess.check_output(cmd, stderr=subprocess.DEVNULL).decode('utf-8')
-        data = json.loads(output)
+        import urllib.request as ureq, urllib.parse as uparse
+        # Usamos la API oEmbed de YouTube (sin restricción de IP, 100% gratuita)
+        oembed_url = f"https://www.youtube.com/oembed?url={uparse.quote(url)}&format=json"
+        with ureq.urlopen(oembed_url, timeout=10) as resp:
+            data = json.loads(resp.read().decode('utf-8'))
+        
+        # La thumbnail de alta resolución se puede construir por el video_id
+        video_id = ''
+        for part in [url]:
+            for sep in ['v=', 'youtu.be/', '/embed/']:
+                if sep in part:
+                    video_id = part.split(sep)[-1].split('&')[0].split('?')[0]
+                    break
+        
+        thumbnail = f"https://img.youtube.com/vi/{video_id}/hqdefault.jpg" if video_id else data.get('thumbnail_url', '')
         
         return jsonify({
             "title": data.get("title", "YouTube Video"),
-            "thumbnail": data.get("thumbnail", ""),
-            "duration": data.get("duration", 0)
+            "thumbnail": thumbnail,
+            "duration": 0
         })
     except Exception as e:
-        logging.error(f"Error getting metadata: {e}")
+        logging.error(f"Error getting metadata via oEmbed: {e}")
         return jsonify({"error": "No se pudo obtener la información del video."}), 500
 
 @app.route('/api/get-direct-url', methods=['GET'])
@@ -294,8 +305,12 @@ def get_direct_url():
         return jsonify({"error": "No URL provided"}), 400
         
     try:
-        # Obtenemos la URL directa del CDN de YouTube (sin descargar nada)
-        cmd = get_yt_dlp_cmd() + ['-g', '-f', 'best[ext=mp4]/best', url]
+        # Usamos el cliente Android que evita bloqueos de IP en la nube
+        cmd = get_yt_dlp_cmd() + [
+            '-g', '-f', 'best[ext=mp4]/best', 
+            '--extractor-args', 'youtube:player_client=android',
+            url
+        ]
         direct_url = subprocess.check_output(cmd, stderr=subprocess.DEVNULL, timeout=30).decode('utf-8').strip()
         
         # Obtenemos el título para el nombre del archivo
