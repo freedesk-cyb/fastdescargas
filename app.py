@@ -304,6 +304,7 @@ def get_direct_url():
     if not url:
         return jsonify({"error": "No URL provided"}), 400
         
+    try:
         import urllib.request as ureq
         import urllib.parse as uparse
         import urllib.error
