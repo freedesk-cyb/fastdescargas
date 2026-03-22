@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
     // Auth Variables
-    const API_URL = 'http://127.0.0.1:5000';
+    const API_URL = ''; // Rutas relativas para un solo servidor unificado
     let currentUser = {
         token: localStorage.getItem('fastvideo_token'),
         username: localStorage.getItem('fastvideo_username'),

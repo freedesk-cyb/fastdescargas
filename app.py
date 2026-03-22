@@ -69,6 +69,20 @@ def is_authorized(request_obj, required_role=None):
     if required_role and user['role'] != required_role: return None
     return user
 
+# --- SERVIDOR DE ARCHIVOS ESTÁTICOS (FRONTEND) ---
+import os
+from flask import send_from_directory
+
+@app.route('/')
+def serve_index():
+    return send_from_directory('.', 'index.html')
+
+@app.route('/<path:path>')
+def serve_static(path):
+    if os.path.exists(path):
+        return send_from_directory('.', path)
+    return send_from_directory('.', 'index.html')
+
 # --- RUTAS DE AUTENTICACIÓN Y ADMINISTRACIÓN ---
 
 @app.route('/api/login', methods=['POST'])
