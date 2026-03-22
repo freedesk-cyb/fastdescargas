@@ -305,48 +305,54 @@ def get_direct_url():
         return jsonify({"error": "No URL provided"}), 400
         
     try:
-        # Probamos múltiples clientes de YouTube en cascada hasta que uno funcione
-        clients = ['android', 'ios', 'mweb', 'android_embedded', 'web']
-        direct_url = None
-        last_error = None
+        import urllib.request as ureq
+        import urllib.parse as uparse
         
-        for client in clients:
-            try:
-                cmd = get_yt_dlp_cmd() + [
-                    '-g', '-f', 'best[ext=mp4]/best',
-                    '--extractor-args', f'youtube:player_client={client}',
-                    url
-                ]
-                result = subprocess.check_output(cmd, stderr=subprocess.DEVNULL, timeout=25).decode('utf-8').strip()
-                if result and result.startswith('http'):
-                    direct_url = result
-                    logging.info(f"✅ URL obtenida con cliente: {client}")
-                    break
-            except Exception as e:
-                last_error = e
-                logging.warning(f"Cliente {client} falló: {e}")
-                continue
+        # Usamos Cobalt.tools API — diseñada para esto, no bloqueada por YouTube
+        cobalt_payload = json.dumps({
+            "url": url,
+            "downloadMode": "auto",
+            "videoQuality": "720",
+            "filenameStyle": "classic"
+        }).encode('utf-8')
         
-        if not direct_url:
-            # Último intento sin especificar cliente
-            try:
-                cmd = get_yt_dlp_cmd() + ['-g', '-f', 'best[ext=mp4]/best', url]
-                direct_url = subprocess.check_output(cmd, stderr=subprocess.DEVNULL, timeout=25).decode('utf-8').strip()
-            except Exception as e:
-                raise Exception(f"Todos los clientes fallaron. Último error: {e}")
+        cobalt_req = ureq.Request(
+            "https://api.cobalt.tools/",
+            data=cobalt_payload,
+            headers={
+                "Content-Type": "application/json",
+                "Accept": "application/json",
+                "User-Agent": "Fastvideo/1.0"
+            },
+            method="POST"
+        )
         
-        # Obtenemos el título para el nombre del archivo
+        with ureq.urlopen(cobalt_req, timeout=20) as resp:
+            cobalt_data = json.loads(resp.read().decode('utf-8'))
+        
+        logging.info(f"Cobalt response status: {cobalt_data.get('status')}")
+        
+        download_url = None
+        if cobalt_data.get('status') in ('redirect', 'tunnel', 'stream'):
+            download_url = cobalt_data.get('url')
+        
+        if not download_url:
+            return jsonify({"error": f"Cobalt no pudo procesar el video: {cobalt_data.get('error', {}).get('code', 'desconocido')}"}), 500
+        
+        # Extraer título del video_id usando oEmbed (ya lo teníamos)
         title = "Fastvideo_Download"
         try:
-            title_cmd = get_yt_dlp_cmd() + ['--get-title', url]
-            title = subprocess.check_output(title_cmd, stderr=subprocess.DEVNULL, timeout=15).decode('utf-8').strip()
-            title = clean_filename(title)
+            oembed_url = f"https://www.youtube.com/oembed?url={uparse.quote(url)}&format=json"
+            with ureq.urlopen(oembed_url, timeout=8) as r:
+                oembed = json.loads(r.read().decode('utf-8'))
+                title = clean_filename(oembed.get('title', title))
         except:
             pass
         
-        return jsonify({"url": direct_url, "filename": f"{title}.mp4"})
+        return jsonify({"url": download_url, "filename": f"{title}.mp4"})
+        
     except Exception as e:
-        logging.error(f"Error obteniendo URL directa: {e}")
+        logging.error(f"Error con Cobalt API: {e}")
         return jsonify({"error": "No se pudo obtener la URL de descarga."}), 500
 
 if __name__ == '__main__':
