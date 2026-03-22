@@ -320,25 +320,30 @@ def get_direct_url():
             
         logging.info(f"🚀 Procesando descarga para: {clean_url}")
         
-        # 2. Lista de instancias de Cobalt (si una falla por Cloudflare, probamos otra)
+        # 2. Lista de instancias de Cobalt verificadas (si una falla, probamos otra)
+        # Probamos combinaciones de URLs raíz y /api/json según la versión de la instancia
         instances = [
             "https://api.cobalt.tools/",
+            "https://cobalt.vxtwitter.com/",
             "https://cobalt.crushready.com/",
-            "https://cobalt.sh/api/json" # Algunas usan /api/json, otras la raíz
+            "https://api.cobalt.tools/api/json",
+            "https://cobalt.vxtwitter.com/api/json"
         ]
         
-        # Headers realistas para evitar Error 403 (browser signature banned)
+        # Headers mucho más realistas para saltar Cloudflare
+        # Importante: No usar headers contradictorios
         browser_headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
             "Accept": "application/json",
+            "Accept-Language": "es-ES,es;q=0.9,en;q=0.8",
             "Content-Type": "application/json",
-            "Origin": "https://cobalt.tools",
-            "Referer": "https://cobalt.tools/"
+            "Sec-Fetch-Dest": "empty",
+            "Sec-Fetch-Mode": "cors",
+            "Sec-Fetch-Site": "cross-site"
         }
         
         cobalt_payload = json.dumps({
             "url": clean_url,
-            "downloadMode": "auto",
             "videoQuality": "720",
             "filenameStyle": "classic"
         }).encode('utf-8')
@@ -348,26 +353,33 @@ def get_direct_url():
         
         for api_url in instances:
             try:
-                logging.info(f"Intentando con instancia: {api_url}")
-                req = ureq.Request(api_url, data=cobalt_payload, headers=browser_headers, method="POST")
-                with ureq.urlopen(req, timeout=15) as resp:
+                logging.info(f"Probando instancia: {api_url}")
+                # Ajustamos el Origin según el host de la instancia para consistencia
+                host = uparse.urlparse(api_url).hostname
+                headers = browser_headers.copy()
+                headers["Origin"] = f"https://{host}"
+                headers["Referer"] = f"https://{host}/"
+                
+                req = ureq.Request(api_url, data=cobalt_payload, headers=headers, method="POST")
+                with ureq.urlopen(req, timeout=12) as resp:
                     data = json.loads(resp.read().decode('utf-8'))
-                    if data.get('status') in ('redirect', 'tunnel', 'stream') and data.get('url'):
+                    # Cobalt v7+ usa status 'tunnel', 'redirect', etc.
+                    # Algunos retornan directamente el campo 'url'
+                    if data.get('url'):
                         download_url = data.get('url')
                         logging.info(f"✅ ¡Éxito con {api_url}!")
                         break
-                    elif data.get('status') == 'error':
-                        last_error_detail = data.get('error', {}).get('code', 'Error desconocido')
             except urllib.error.HTTPError as e:
                 try: 
-                    detail = json.loads(e.read().decode('utf-8')).get('error', {}).get('code', str(e.code))
+                    body = e.read().decode('utf-8')
+                    detail = json.loads(body).get('error', {}).get('code', str(e.code))
                 except:
                     detail = f"HTTP {e.code}"
-                last_error_detail = f"Instancia {api_url} bloqueada ({detail})"
-                logging.warning(last_error_detail)
+                last_error_detail = f"{host}: {detail}"
+                logging.warning(f"Fallo instancia {host}: {detail}")
             except Exception as e:
-                logging.warning(f"Fallo en {api_url}: {str(e)}")
-                last_error_detail = str(e)
+                last_error_detail = f"{host}: {str(e)}"
+                logging.warning(f"Error en {host}: {str(e)}")
         
         if not download_url:
             return jsonify({"error": f"No se pudo autorizar la descarga (Motivo: {last_error_detail}). Por favor, intenta de nuevo en unos segundos."}), 500
