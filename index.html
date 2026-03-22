@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Descarga videos de YouTube gratis y rápido con Fastvideo. Copia y pega el enlace para bajar videos en MP4 o MP3.">
+    <title>Fastvideo - Descargador de YouTube Gratis</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- Iconos Lucide (via CDN for simplicity) -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">
+                <i data-lucide="zap"></i>
+                Fast<span>video</span>
+            </div>
+            <nav>
+                <div class="btn-download" style="border: none; background: transparent; font-weight: 500;">
+                    Español <i data-lucide="chevron-down" style="width: 16px; display: inline-block;"></i>
+                </div>
+            </nav>
+        </header>
+
+        <main class="hero">
+            <h1>Descarga Videos de YouTube <span>Gratis</span></h1>
+            <p>Convierte y descarga tus videos favoritos de YouTube en alta definición de forma rápida, segura y sin registros.</p>
+
+            <div class="input-wrapper glass">
+                <input type="text" id="video-url" placeholder="Pega el link de YouTube aquí..." autocomplete="off">
+                <button id="btn-fetch" class="btn-primary">
+                    <span id="btn-text">Descargar</span>
+                    <div class="loader" id="loader"></div>
+                    <i data-lucide="download" id="download-icon"></i>
+                </button>
+            </div>
+
+            <div id="result-area">
+                <div class="result-card glass">
+                    <div class="thumbnail-placeholder">
+                        <img id="video-thumb" src="" alt="Thumbnail" style="display: none;">
+                        <i data-lucide="video" id="video-placeholder-icon"></i>
+                    </div>
+                    <div class="video-info">
+                        <h2 id="video-title">Título del Video</h2>
+                        <div class="download-options">
+                            <button class="btn-download"><i data-lucide="file-video" style="width:14px"></i> MP4 (720p)</button>
+                            <button class="btn-download"><i data-lucide="file-video" style="width:14px"></i> MP4 (1080p)</button>
+                            <button class="btn-download"><i data-lucide="music" style="width:14px"></i> MP3 (320kbps)</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <section class="features">
+                <div class="feature-card glass">
+                    <div class="icon"><i data-lucide="zap"></i></div>
+                    <h3>Súper Rápido</h3>
+                    <p>Nuestro potente motor procesa tus enlaces en segundos para que no pierdas tiempo.</p>
+                </div>
+                <div class="feature-card glass">
+                    <div class="icon"><i data-lucide="shield-check"></i></div>
+                    <h3>Seguro</h3>
+                    <p>Descarga sin virus ni software malicioso. Tu privacidad es nuestra prioridad.</p>
+                </div>
+                <div class="feature-card glass">
+                    <div class="icon"><i data-lucide="infinity"></i></div>
+                    <h3>Ilimitado</h3>
+                    <p>Baja todos los videos que quieras sin límites diarios ni costos ocultos.</p>
+                </div>
+            </section>
+        </main>
+
+        <footer>
+            <p>&copy; 2024 Fastvideo. Hecho con amor para amantes del video.</p>
+        </footer>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="glass">Error message here</div>
+
+    <script src="script.js"></script>
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+    </script>
+</body>
+</html>
