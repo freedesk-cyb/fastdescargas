@@ -304,25 +304,37 @@ def get_direct_url():
     if not url:
         return jsonify({"error": "No URL provided"}), 400
         
-    try:
         import urllib.request as ureq
         import urllib.parse as uparse
         import urllib.error
         
-        # Limpiamos la URL para remover parámetros de playlist (&list=...) 
-        # que pueden dar error en Cobalt al intentar procesarlos como video único.
+        # 1. Limpieza de URL
         clean_url = url
         if 'youtube.com/watch' in url:
             parsed_url = uparse.urlparse(url)
             qs = uparse.parse_qs(parsed_url.query)
-            if 'v' in qs:
-                clean_url = f"https://www.youtube.com/watch?v={qs['v'][0]}"
+            if 'v' in qs: clean_url = f"https://www.youtube.com/watch?v={qs['v'][0]}"
         elif 'youtu.be/' in url:
             clean_url = url.split('?')[0]
             
-        logging.info(f"🚀 Solicitando Cobalt para: {clean_url}")
+        logging.info(f"🚀 Procesando descarga para: {clean_url}")
         
-        # Usamos Cobalt.tools API — diseñada para esto, no bloqueada por YouTube
+        # 2. Lista de instancias de Cobalt (si una falla por Cloudflare, probamos otra)
+        instances = [
+            "https://api.cobalt.tools/",
+            "https://cobalt.crushready.com/",
+            "https://cobalt.sh/api/json" # Algunas usan /api/json, otras la raíz
+        ]
+        
+        # Headers realistas para evitar Error 403 (browser signature banned)
+        browser_headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+            "Accept": "application/json",
+            "Content-Type": "application/json",
+            "Origin": "https://cobalt.tools",
+            "Referer": "https://cobalt.tools/"
+        }
+        
         cobalt_payload = json.dumps({
             "url": clean_url,
             "downloadMode": "auto",
@@ -330,53 +342,49 @@ def get_direct_url():
             "filenameStyle": "classic"
         }).encode('utf-8')
         
-        cobalt_req = ureq.Request(
-            "https://api.cobalt.tools/",
-            data=cobalt_payload,
-            headers={
-                "Content-Type": "application/json",
-                "Accept": "application/json"
-            },
-            method="POST"
-        )
-        
-        try:
-            with ureq.urlopen(cobalt_req, timeout=30) as resp:
-                cobalt_data = json.loads(resp.read().decode('utf-8'))
-        except urllib.error.HTTPError as e:
-            error_body = e.read().decode('utf-8')
-            logging.error(f"Cobalt HTTP Error {e.code}: {error_body}")
-            return jsonify({"error": f"API de descarga falló (Error {e.code}): {error_body}"}), 500
-        
-        logging.info(f"Cobalt response status: {cobalt_data.get('status')}")
-        
         download_url = None
-        if cobalt_data.get('status') in ('redirect', 'tunnel', 'stream'):
-            download_url = cobalt_data.get('url')
-        elif cobalt_data.get('status') == 'error':
-            error_text = cobalt_data.get('error', {}).get('code', 'desconocido')
-            return jsonify({"error": f"Error del servidor de descarga: {error_text}"}), 500
+        last_error_detail = ""
+        
+        for api_url in instances:
+            try:
+                logging.info(f"Intentando con instancia: {api_url}")
+                req = ureq.Request(api_url, data=cobalt_payload, headers=browser_headers, method="POST")
+                with ureq.urlopen(req, timeout=15) as resp:
+                    data = json.loads(resp.read().decode('utf-8'))
+                    if data.get('status') in ('redirect', 'tunnel', 'stream') and data.get('url'):
+                        download_url = data.get('url')
+                        logging.info(f"✅ ¡Éxito con {api_url}!")
+                        break
+                    elif data.get('status') == 'error':
+                        last_error_detail = data.get('error', {}).get('code', 'Error desconocido')
+            except urllib.error.HTTPError as e:
+                try: 
+                    detail = json.loads(e.read().decode('utf-8')).get('error', {}).get('code', str(e.code))
+                except:
+                    detail = f"HTTP {e.code}"
+                last_error_detail = f"Instancia {api_url} bloqueada ({detail})"
+                logging.warning(last_error_detail)
+            except Exception as e:
+                logging.warning(f"Fallo en {api_url}: {str(e)}")
+                last_error_detail = str(e)
         
         if not download_url:
-            return jsonify({"error": "No se recibió una URL válida del servidor de descarga."}), 500
+            return jsonify({"error": f"No se pudo autorizar la descarga (Motivo: {last_error_detail}). Por favor, intenta de nuevo en unos segundos."}), 500
         
-        # Extraer título del video usando oEmbed
+        # 3. Obtener título para el archivo
         title = "Fastvideo_Download"
         try:
             oembed_url = f"https://www.youtube.com/oembed?url={uparse.quote(clean_url)}&format=json"
-            with ureq.urlopen(oembed_url, timeout=10) as r:
-                oembed = json.loads(r.read().decode('utf-8'))
-                title = clean_filename(oembed.get('title', title))
-        except:
-            pass
+            with ureq.urlopen(oembed_url, timeout=5) as r:
+                o_json = json.loads(r.read().decode('utf-8'))
+                title = clean_filename(o_json.get('title', title))
+        except: pass
         
         return jsonify({"url": download_url, "filename": f"{title}.mp4"})
         
     except Exception as e:
-        logging.error(f"Error crítico con API de descarga: {e}")
-        return jsonify({"error": str(e)}), 500
+        logging.error(f"Error crítico: {e}")
+        return jsonify({"error": "Error interno del servidor al procesar el enlace."}), 500
 
 if __name__ == '__main__':
-    print("="*50)
-    print("🚀 Iniciando el servidor Backend de Fastvideo en el puerto 5000...")
     app.run(port=5000, threaded=True)
