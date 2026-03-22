@@ -194,35 +194,69 @@ document.addEventListener('DOMContentLoaded', () => {
             
             btn.disabled = true;
             btnText.textContent = 'Preparando descarga...';
-            status.textContent = 'Obteniendo enlace directo, esto puede tomar unos segundos...';
+            status.textContent = 'Obteniendo enlace directo desde el navegador (sin bloqueos de servidor)...';
             
-            try {
-                const res = await fetch(directUrlEndpoint, {
-                    headers: { 'Authorization': `Bearer ${currentUser.token}` }
-                });
-                const data = await res.json();
-                
-                if (data.url) {
-                    status.textContent = '✅ ¡Descarga iniciándose! No cierres esta pestaña.';
-                    // Crear un enlace oculto y hacer clic para descargar sin navegar
-                    const a = document.createElement('a');
-                    a.href = data.url;
-                    a.download = data.filename || 'video.mp4';
-                    document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
-                } else {
-                    status.textContent = '❌ ' + (data.error || 'Error al obtener el video.');
+            // Instancias públicas de Cobalt para descarga directa desde tu navegador
+            const instances = [
+                "https://api.cobalt.tools/",
+                "https://cobalt.crushready.com/",
+                "https://cobalt-api.lre.pl/"
+            ];
+            
+            const payload = {
+                url: originalUrl,
+                videoQuality: "720",
+                filenameStyle: "classic"
+            };
+            
+            let downloadUrl = null;
+            let lastError = "No se pudo conectar con ningún servidor de descarga.";
+            
+            for (const apiUrl of instances) {
+                try {
+                    console.log(`Intentando descarga desde: ${apiUrl}`);
+                    const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: {
+                            'Accept': 'application/json',
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(payload)
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (data && data.url) {
+                        downloadUrl = data.url;
+                        break;
+                    } else if (data && data.error) {
+                        lastError = data.error.code || "Error en el servidor de descarga.";
+                    }
+                } catch (e) {
+                    console.warn(`Fallo en instancia ${apiUrl}:`, e);
+                    continue;
                 }
-            } catch(e) {
-                status.textContent = '❌ Error de conexión con el servidor.';
-            } finally {
-                setTimeout(() => {
-                    btn.disabled = false;
-                    btnText.textContent = 'Descargar MP4';
-                    lucide.createIcons();
-                }, 4000);
             }
+            
+            if (downloadUrl) {
+                status.textContent = '✅ ¡Descarga iniciándose! Revisa las descargas de tu navegador.';
+                const a = document.createElement('a');
+                a.href = downloadUrl;
+                // Usamos el título del video que ya obtuvimos
+                const safeTitle = (document.querySelector('.result-card h3')?.textContent || 'video').replace(/[\\/*?:"<>|]/g, "");
+                a.download = `${safeTitle}.mp4`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+            } else {
+                status.textContent = `❌ ${lastError}. Por favor, prueba otro video o inténtalo más tarde.`;
+            }
+            
+            setTimeout(() => {
+                btn.disabled = false;
+                btnText.textContent = 'Descargar MP4';
+                lucide.createIcons();
+            }, 5000);
         });
         
         resultArea.style.display = 'block';
