@@ -2,43 +2,80 @@ import subprocess
 import json
 import logging
 import sys
-import sqlite3
+import os
 import secrets
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask import Flask, request, Response, jsonify
 from flask_cors import CORS
 
 app = Flask(__name__)
-# Permite solicitudes desde el frontend servido en el puerto 8000
 CORS(app)
 
 logging.basicConfig(level=logging.INFO)
 
-# --- CONFIGURACIÓN BASE DE DATOS ---
-DB_PATH = 'database.db'
+# --- CONFIGURACIÓN BASE DE DATOS (SQLite local / PostgreSQL en producción) ---
+DATABASE_URL = os.environ.get('DATABASE_URL')
 
-def get_db_connection():
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    return conn
+if DATABASE_URL:
+    import psycopg2
+    import psycopg2.extras
+    PH = '%s'  # Placeholder para PostgreSQL
+    def get_db_connection():
+        conn = psycopg2.connect(DATABASE_URL, sslmode='require')
+        conn.autocommit = False
+        return conn
+    def fetchrow(cursor):
+        row = cursor.fetchone()
+        if row is None: return None
+        cols = [d[0] for d in cursor.description]
+        return dict(zip(cols, row))
+    def fetchall(cursor):
+        rows = cursor.fetchall()
+        cols = [d[0] for d in cursor.description]
+        return [dict(zip(cols, r)) for r in rows]
+    logging.info("🐘 Usando PostgreSQL (producción)")
+else:
+    import sqlite3
+    PH = '?'  # Placeholder para SQLite
+    DB_PATH = 'database.db'
+    def get_db_connection():
+        conn = sqlite3.connect(DB_PATH)
+        conn.row_factory = sqlite3.Row
+        return conn
+    def fetchrow(cursor):
+        row = cursor.fetchone()
+        return dict(row) if row else None
+    def fetchall(cursor):
+        return [dict(r) for r in cursor.fetchall()]
+    logging.info("🗄️ Usando SQLite (local)")
 
 def init_db():
     conn = get_db_connection()
     c = conn.cursor()
-    c.execute('''
-        CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            username TEXT UNIQUE NOT NULL,
-            password_hash TEXT NOT NULL,
-            role TEXT NOT NULL DEFAULT 'user',
-            token TEXT
-        )
-    ''')
-    # Validar si el admin base existe
-    c.execute('SELECT * FROM users WHERE username = ?', ('admin',))
-    if not c.fetchone():
+    if DATABASE_URL:
+        c.execute('''
+            CREATE TABLE IF NOT EXISTS users (
+                id SERIAL PRIMARY KEY,
+                username TEXT UNIQUE NOT NULL,
+                password_hash TEXT NOT NULL,
+                role TEXT NOT NULL DEFAULT 'user',
+                token TEXT
+            )
+        ''')
+    else:
+        c.execute('''
+            CREATE TABLE IF NOT EXISTS users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                username TEXT UNIQUE NOT NULL,
+                password_hash TEXT NOT NULL,
+                role TEXT NOT NULL DEFAULT 'user',
+                token TEXT
+            )
+        ''')
+    c.execute(f'SELECT * FROM users WHERE username = {PH}', ('admin',))
+    if not fetchrow(c):
         admin_hash = generate_password_hash('admin')
-        c.execute('INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)',
+        c.execute(f'INSERT INTO users (username, password_hash, role) VALUES ({PH}, {PH}, {PH})',
                   ('admin', admin_hash, 'admin'))
         logging.info("📝 Creado el usuario por defecto: username 'admin' | password 'admin'.")
     conn.commit()
@@ -49,9 +86,12 @@ init_db()
 def get_user_from_token(token):
     if not token: return None
     conn = get_db_connection()
-    user = conn.execute('SELECT * FROM users WHERE token = ?', (token,)).fetchone()
+    c = conn.cursor()
+    c.execute(f'SELECT * FROM users WHERE token = {PH}', (token,))
+    user = fetchrow(c)
     conn.close()
     return user
+
 
 # --- ENDPOINTS MIDDLEWARE - PROTECCIÓN ---
 
@@ -70,7 +110,6 @@ def is_authorized(request_obj, required_role=None):
     return user
 
 # --- SERVIDOR DE ARCHIVOS ESTÁTICOS (FRONTEND) ---
-import os
 from flask import send_from_directory
 
 @app.route('/')
@@ -95,10 +134,12 @@ def login():
         return jsonify({"error": "Faltan credenciales"}), 400
         
     conn = get_db_connection()
-    user = conn.execute('SELECT * FROM users WHERE username = ?', (username,)).fetchone()
+    c = conn.cursor()
+    c.execute(f'SELECT * FROM users WHERE username = {PH}', (username,))
+    user = fetchrow(c)
     if user and check_password_hash(user['password_hash'], password):
         token = secrets.token_hex(20)
-        conn.execute('UPDATE users SET token = ? WHERE id = ?', (token, user['id']))
+        c.execute(f'UPDATE users SET token = {PH} WHERE id = {PH}', (token, user['id']))
         conn.commit()
         conn.close()
         return jsonify({"token": token, "username": user['username'], "role": user['role']})
@@ -112,9 +153,11 @@ def get_users():
     if not admin_user: return jsonify({"error": "Acceso denegado"}), 403
         
     conn = get_db_connection()
-    users = conn.execute('SELECT id, username, role FROM users').fetchall()
+    c = conn.cursor()
+    c.execute('SELECT id, username, role FROM users')
+    users = fetchall(c)
     conn.close()
-    return jsonify([dict(u) for u in users])
+    return jsonify(users)
 
 @app.route('/api/admin/users', methods=['POST'])
 def create_user():
@@ -130,12 +173,13 @@ def create_user():
         return jsonify({"error": "Datos incompletos"}), 400
         
     conn = get_db_connection()
+    c = conn.cursor()
     try:
         pw_hash = generate_password_hash(password)
-        conn.execute('INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)',
+        c.execute(f'INSERT INTO users (username, password_hash, role) VALUES ({PH}, {PH}, {PH})',
                      (username, pw_hash, role))
         conn.commit()
-    except sqlite3.IntegrityError:
+    except Exception:
         conn.close()
         return jsonify({"error": "Ese nombre de usuario ya existe"}), 409
     conn.close()
@@ -150,7 +194,8 @@ def delete_user(user_id):
         return jsonify({"error": "No puedes eliminarte a ti mismo"}), 400
         
     conn = get_db_connection()
-    conn.execute('DELETE FROM users WHERE id = ?', (user_id,))
+    c = conn.cursor()
+    c.execute(f'DELETE FROM users WHERE id = {PH}', (user_id,))
     conn.commit()
     conn.close()
     return jsonify({"success": True})
@@ -166,24 +211,26 @@ def update_user(user_id):
     role = data.get('role')
     
     conn = get_db_connection()
-    user = conn.execute('SELECT * FROM users WHERE id = ?', (user_id,)).fetchone()
+    c = conn.cursor()
+    c.execute(f'SELECT * FROM users WHERE id = {PH}', (user_id,))
+    user = fetchrow(c)
     if not user:
         conn.close()
         return jsonify({"error": "Usuario no encontrado"}), 404
         
     try:
         if username:
-            conn.execute('UPDATE users SET username = ? WHERE id = ?', (username, user_id))
+            c.execute(f'UPDATE users SET username = {PH} WHERE id = {PH}', (username, user_id))
         if password:
             pw_hash = generate_password_hash(password)
-            conn.execute('UPDATE users SET password_hash = ? WHERE id = ?', (pw_hash, user_id))
-            conn.execute('UPDATE users SET token = NULL WHERE id = ?', (user_id,))
+            c.execute(f'UPDATE users SET password_hash = {PH} WHERE id = {PH}', (pw_hash, user_id))
+            c.execute(f'UPDATE users SET token = NULL WHERE id = {PH}', (user_id,))
         if role:
             if user_id == admin_user['id'] and role != 'admin':
                 return jsonify({"error": "No puedes revocar tus propios admin rights"}), 400
-            conn.execute('UPDATE users SET role = ? WHERE id = ?', (role, user_id))
+            c.execute(f'UPDATE users SET role = {PH} WHERE id = {PH}', (role, user_id))
         conn.commit()
-    except sqlite3.IntegrityError:
+    except Exception:
         conn.close()
         return jsonify({"error": "Usuario ya existe"}), 409
         

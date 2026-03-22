@@ -3,3 +3,4 @@ Werkzeug==3.0.3
 flask-cors==4.0.0
 yt-dlp==2024.11.18
 gunicorn==23.0.0
+psycopg2-binary==2.9.9
