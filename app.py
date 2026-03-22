@@ -321,25 +321,21 @@ def get_direct_url():
         logging.info(f"🚀 Procesando descarga para: {clean_url}")
         
         # 2. Lista de instancias de Cobalt verificadas (si una falla, probamos otra)
-        # Probamos combinaciones de URLs raíz y /api/json según la versión de la instancia
-        instances = [
-            "https://api.cobalt.tools/",
-            "https://cobalt.vxtwitter.com/",
-            "https://cobalt.crushready.com/",
-            "https://api.cobalt.tools/api/json",
-            "https://cobalt.vxtwitter.com/api/json"
+        base_instances = [
+            "https://api.cobalt.tools",
+            "https://cobalt.crushready.com",
+            "https://cobalt-api.lre.pl",
+            "https://api.vxtwitter.com"
         ]
         
-        # Headers mucho más realistas para saltar Cloudflare
-        # Importante: No usar headers contradictorios
+        # Headers realistas para bypassear Cloudflare (User-Agent real es clave)
         browser_headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
             "Accept": "application/json",
-            "Accept-Language": "es-ES,es;q=0.9,en;q=0.8",
             "Content-Type": "application/json",
-            "Sec-Fetch-Dest": "empty",
-            "Sec-Fetch-Mode": "cors",
-            "Sec-Fetch-Site": "cross-site"
+            "Accept-Language": "en-US,en;q=0.9",
+            "Origin": "https://cobalt.tools",
+            "Referer": "https://cobalt.tools/"
         }
         
         cobalt_payload = json.dumps({
@@ -351,38 +347,44 @@ def get_direct_url():
         download_url = None
         last_error_detail = ""
         
-        for api_url in instances:
-            try:
-                logging.info(f"Probando instancia: {api_url}")
-                # Ajustamos el Origin según el host de la instancia para consistencia
-                host = uparse.urlparse(api_url).hostname
-                headers = browser_headers.copy()
-                headers["Origin"] = f"https://{host}"
-                headers["Referer"] = f"https://{host}/"
-                
-                req = ureq.Request(api_url, data=cobalt_payload, headers=headers, method="POST")
-                with ureq.urlopen(req, timeout=12) as resp:
-                    data = json.loads(resp.read().decode('utf-8'))
-                    # Cobalt v7+ usa status 'tunnel', 'redirect', etc.
-                    # Algunos retornan directamente el campo 'url'
-                    if data.get('url'):
-                        download_url = data.get('url')
-                        logging.info(f"✅ ¡Éxito con {api_url}!")
-                        break
-            except urllib.error.HTTPError as e:
-                try: 
-                    body = e.read().decode('utf-8')
-                    detail = json.loads(body).get('error', {}).get('code', str(e.code))
-                except:
-                    detail = f"HTTP {e.code}"
-                last_error_detail = f"{host}: {detail}"
-                logging.warning(f"Fallo instancia {host}: {detail}")
-            except Exception as e:
-                last_error_detail = f"{host}: {str(e)}"
-                logging.warning(f"Error en {host}: {str(e)}")
+        for base in base_instances:
+            # Probamos tanto la raíz como /api/json para cada instancia (algunas dan 405 en '/' )
+            for path in ["/", "/api/json"]:
+                api_url = base.rstrip('/') + path
+                try:
+                    logging.info(f"Intentando con: {api_url}")
+                    headers = browser_headers.copy()
+                    headers["Origin"] = base
+                    headers["Referer"] = base + "/"
+                    
+                    req = ureq.Request(api_url, data=cobalt_payload, headers=headers, method="POST")
+                    with ureq.urlopen(req, timeout=12) as resp:
+                        data = json.loads(resp.read().decode('utf-8'))
+                        
+                        # Manejo de respuesta Cobalt v7 (algunos mandan 'url' directo)
+                        if data.get('url'):
+                            download_url = data.get('url')
+                            logging.info(f"✅ Descarga obtenida de {api_url}")
+                            break
+                        # Otros mandan status 'redirect' o 'tunnel'
+                        elif data.get('status') in ('redirect', 'tunnel', 'stream') and data.get('url'):
+                            download_url = data.get('url')
+                            break
+                except urllib.error.HTTPError as e:
+                    try:
+                        resp_data = json.loads(e.read().decode('utf-8'))
+                        err_code = resp_data.get('error', {}).get('code', str(e.code))
+                    except:
+                        err_code = str(e.code)
+                    last_error_detail = f"{base}{path} → {err_code}"
+                    continue # Siguiente ruta/instancia
+                except Exception as e:
+                    last_error_detail = f"{base} → {str(e)}"
+                    continue
+            if download_url: break
         
         if not download_url:
-            return jsonify({"error": f"No se pudo autorizar la descarga (Motivo: {last_error_detail}). Por favor, intenta de nuevo en unos segundos."}), 500
+            return jsonify({"error": f"Error de descarga: {last_error_detail}. Por favor, prueba otro enlace o de nuevo mas tarde."}), 500
         
         # 3. Obtener título para el archivo
         title = "Fastvideo_Download"
