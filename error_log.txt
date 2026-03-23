@@ -11,3 +11,13 @@
 2026-03-23 00:35:41,796 - INFO - 127.0.0.1 - - [23/Mar/2026 00:35:41] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
 2026-03-23 00:37:07,697 - INFO - 127.0.0.1 - - [23/Mar/2026 00:37:07] "[36mGET / HTTP/1.1[0m" 304 -
 2026-03-23 00:37:07,791 - INFO - 127.0.0.1 - - [23/Mar/2026 00:37:07] "[36mGET /script.js HTTP/1.1[0m" 304 -
+2026-03-23 00:39:21,691 - INFO - \U0001f50d Verificando librerias...
+2026-03-23 00:39:22,779 - INFO - 
+\U0001f680 Fastvideo LOCAL v5.2 Iniciado!
+2026-03-23 00:39:22,779 - INFO - Si no se abre solo, ve a: http://127.0.0.1:5000
+2026-03-23 00:39:22,803 - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+2026-03-23 00:39:22,803 - INFO - [33mPress CTRL+C to quit[0m
+2026-03-23 00:39:24,779 - INFO - \U0001f30d Abriendo http://127.0.0.1:5000 en tu navegador...
+2026-03-23 00:39:25,235 - INFO - 127.0.0.1 - - [23/Mar/2026 00:39:25] "[36mGET / HTTP/1.1[0m" 304 -
+2026-03-23 00:39:25,418 - INFO - 127.0.0.1 - - [23/Mar/2026 00:39:25] "GET /script.js HTTP/1.1" 200 -
