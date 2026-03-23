@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
-    console.log("Fastvideo v2.1 loaded");
+    console.log("Fastvideo v2.2 loaded");
     // Auth Variables
     const API_URL = ''; // Rutas relativas para un solo servidor unificado
     let currentUser = {
@@ -208,7 +208,11 @@ document.addEventListener('DOMContentLoaded', () => {
                         headers: { 'Authorization': `Bearer ${currentUser.token}` }
                     });
                     const data = await res.json();
-                    if (data.url) downloadUrl = data.url;
+                    if (data.url) {
+                        downloadUrl = data.url;
+                    } else if (data.error) {
+                        lastErrorMessage = data.error;
+                    }
                 }
             } catch (e) {
                 console.warn("Backend Savetube falló, intentando espejos frontend...");
@@ -261,7 +265,7 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 const fallbackUrlManual = `https://cobalt.tools/?u=${encodeURIComponent(originalUrl)}`;
                 status.innerHTML = `
-                    <p style="color: #ff6b6b; margin-bottom: 10px;">❌ Servidores ocupados en este momento.</p>
+                    <p style="color: #ff6b6b; margin-bottom: 10px;">❌ ${lastErrorMessage}</p>
                     <a href="${fallbackUrlManual}" target="_blank" class="btn-primary" style="background: #fbbf24; color: #000; text-decoration: none; padding: 10px; border-radius: 8px; display: inline-flex; align-items: center; gap: 5px; font-weight: bold; width: 100%; justify-content: center;">
                         <i data-lucide="external-link" style="width:16px"></i> Usar Descargador Manual (Garantizado)
                     </a>
