@@ -45,3 +45,31 @@
 2026-03-23 00:42:27,758 - INFO - \U0001f4e5 Solicitud descarga para ID: U8j-OYlzVwE
 2026-03-23 00:42:27,901 - INFO - \U0001f517 Generando link directo...
 2026-03-23 00:42:30,580 - INFO - 127.0.0.1 - - [23/Mar/2026 00:42:30] "GET /api/get-direct-url?video_id=U8j-OYlzVwE HTTP/1.1" 200 -
+2026-03-23 00:44:56,744 - INFO - \U0001f50d Verificando librerias...
+2026-03-23 00:44:57,812 - INFO - 
+\U0001f680 Fastvideo LOCAL v5.2 Iniciado!
+2026-03-23 00:44:57,812 - INFO - Si no se abre solo, ve a: http://127.0.0.1:5000
+2026-03-23 00:44:57,836 - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+2026-03-23 00:44:57,836 - INFO - [33mPress CTRL+C to quit[0m
+2026-03-23 00:44:59,812 - INFO - \U0001f30d Abriendo http://127.0.0.1:5000 en tu navegador...
+2026-03-23 00:45:00,193 - INFO - 127.0.0.1 - - [23/Mar/2026 00:45:00] "[36mGET / HTTP/1.1[0m" 304 -
+2026-03-23 00:45:00,335 - INFO - 127.0.0.1 - - [23/Mar/2026 00:45:00] "GET /script.js HTTP/1.1" 200 -
+2026-03-23 00:45:57,680 - INFO - \U0001f4e5 Solicitud metadata para: https://www.youtube.com/watch?v=j2WoXUG2h8o&list=RDj2WoXUG2h8o&start_radio=1
+2026-03-23 00:45:57,811 - INFO - \U0001f50d Extrayendo info de YouTube...
+2026-03-23 00:46:00,206 - INFO - \u2705 Exito: Dj Snake - Middle (Sub Español - Lyrics) [OFFICIAL VIDEO]
+2026-03-23 00:46:00,207 - INFO - 127.0.0.1 - - [23/Mar/2026 00:46:00] "GET /api/get-metadata?url=https://www.youtube.com/watch?v%3Dj2WoXUG2h8o%26list%3DRDj2WoXUG2h8o%26start_radio%3D1 HTTP/1.1" 200 -
+2026-03-23 00:46:00,218 - INFO - \U0001f4e5 Solicitud descarga para ID: j2WoXUG2h8o
+2026-03-23 00:46:00,351 - INFO - \U0001f517 Generando link directo...
+2026-03-23 00:46:02,716 - INFO - 127.0.0.1 - - [23/Mar/2026 00:46:02] "GET /api/get-direct-url?video_id=j2WoXUG2h8o HTTP/1.1" 200 -
+2026-03-23 00:46:14,043 - INFO - \U0001f4e5 Solicitud metadata para: https://www.youtube.com/watch?v=U8j-OYlzVwE&list=RDU8j-OYlzVwE&start_radio=1
+2026-03-23 00:46:14,219 - INFO - \U0001f50d Extrayendo info de YouTube...
+2026-03-23 00:46:17,047 - INFO - \u2705 Exito: Lana Del Rey - Summertime Sadness (Español + Lyrics) | video musical
+2026-03-23 00:46:17,049 - INFO - 127.0.0.1 - - [23/Mar/2026 00:46:17] "GET /api/get-metadata?url=https://www.youtube.com/watch?v%3DU8j-OYlzVwE%26list%3DRDU8j-OYlzVwE%26start_radio%3D1 HTTP/1.1" 200 -
+2026-03-23 00:46:28,033 - INFO - \U0001f4e5 Solicitud metadata para: https://www.youtube.com/watch?v=j2WoXUG2h8o&list=RDj2WoXUG2h8o&start_radio=1
+2026-03-23 00:46:28,173 - INFO - \U0001f50d Extrayendo info de YouTube...
+2026-03-23 00:46:30,441 - INFO - \u2705 Exito: Dj Snake - Middle (Sub Español - Lyrics) [OFFICIAL VIDEO]
+2026-03-23 00:46:30,443 - INFO - 127.0.0.1 - - [23/Mar/2026 00:46:30] "GET /api/get-metadata?url=https://www.youtube.com/watch?v%3Dj2WoXUG2h8o%26list%3DRDj2WoXUG2h8o%26start_radio%3D1 HTTP/1.1" 200 -
+2026-03-23 00:46:30,454 - INFO - \U0001f4e5 Solicitud descarga para ID: j2WoXUG2h8o
+2026-03-23 00:46:30,591 - INFO - \U0001f517 Generando link directo...
+2026-03-23 00:46:32,906 - INFO - 127.0.0.1 - - [23/Mar/2026 00:46:32] "GET /api/get-direct-url?video_id=j2WoXUG2h8o HTTP/1.1" 200 -

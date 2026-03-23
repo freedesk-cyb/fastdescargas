@@ -3,6 +3,7 @@ import os
 import logging
 import threading
 import time
+import urllib.request as ureq
 
 # Configurar logging inmediato a un archivo para ver errores de arranque
 logging.basicConfig(
@@ -88,6 +89,32 @@ def get_direct_url():
     except Exception as e:
         log_and_print(f"❌ Error Descarga: {str(e)}")
         return jsonify({"error": str(e)}), 500
+
+@app.route('/api/proxy-download')
+def proxy_download():
+    video_url = request.args.get('url')
+    filename = request.args.get('filename', 'video.mp4')
+    if not video_url: return "No URL", 400
+    
+    try:
+        req = ureq.Request(video_url, headers={'User-Agent': 'Mozilla/5.0'})
+        response = ureq.urlopen(req)
+        content_length = response.getheader('Content-Length')
+        
+        def generate():
+            for chunk in iter(lambda: response.read(1024*64), b""):
+                yield chunk
+        
+        headers = {
+            'Content-Disposition': f'attachment; filename="{filename}"',
+            'Content-Type': 'video/mp4'
+        }
+        if content_length: headers['Content-Length'] = content_length
+        
+        return Response(generate(), headers=headers)
+    except Exception as e:
+        log_and_print(f"❌ Error Proxy: {e}")
+        return str(e), 500
 
 def start_browser():
     time.sleep(2)

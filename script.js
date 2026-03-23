@@ -28,15 +28,14 @@ document.getElementById('btn-fetch').addEventListener('click', async () => {
             return;
         }
 
-        // Mostrar resultado (Miniatura primero)
+        // Mostrar resultado
         videoThumb.src = data.thumbnail;
         document.getElementById('video-title').textContent = data.title;
         resultDiv.style.display = 'block';
         
-        status.innerHTML = "🚀 <b>¡Video encontrado! Conectando reproductor...</b>";
+        status.innerHTML = "🚀 <b>¡Video encontrado! Conectando...</b>";
         
         try {
-            // Obtener link directo para reproducción y descarga
             const dlRes = await fetch(`/api/get-direct-url?video_id=${data.video_id}`);
             const dlData = await dlRes.json();
             
@@ -45,44 +44,93 @@ document.getElementById('btn-fetch').addEventListener('click', async () => {
                 videoThumb.style.display = 'none';
                 videoPlayer.src = dlData.url;
                 videoPlayer.style.display = 'block';
-                videoPlayer.play().catch(e => console.log("Auto-play bloqueado por el navegador"));
+                videoPlayer.play().catch(e => console.log("Auto-play bloqueado"));
                 
-                status.innerHTML = "✅ <b>¡Listo!</b> Puedes reproducir el video arriba o descargarlo.";
+                status.innerHTML = "✅ <b>¡Listo!</b> Iniciando descarga en el panel...";
                 
-                // --- AUTO DESCARGA ---
-                const a = document.createElement('a');
-                a.href = dlData.url;
-                a.download = data.title + ".mp4";
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
+                // --- INLINE DOWNLOAD ---
+                downloadInline(dlData.url, data.title + ".mp4");
             } else {
-                status.innerHTML = "❌ No se pudo conectar el reproductor. Usa el botón de abajo.";
+                status.innerHTML = "❌ No se pudo conectar el reproductor.";
             }
         } catch (e) {
-            status.innerHTML = "❌ Falló la conexión del video. Intenta de nuevo.";
+            status.innerHTML = "❌ Falló la conexión del video.";
         }
 
     } catch (e) {
-        status.innerHTML = `<span style="color:#ff6b6b">❌ Error de conexión. Revisa el archivo .bat</span>`;
+        status.innerHTML = "❌ Error de conexión con el servidor.";
     }
     
     btnFetch.disabled = false;
 });
 
-// Botón manual por si falla la auto-descarga
-document.getElementById('btn-download').addEventListener('click', async () => {
-    const videoPlayer = document.getElementById('video-player');
-    const title = document.getElementById('video-title').textContent;
+// FUNCIÓN DE DESCARGA INLINE CON PROGRESO
+async function downloadInline(url, filename) {
+    const progressContainer = document.getElementById('progress-container');
+    const progressBar = document.getElementById('progress-bar');
+    const progressText = document.getElementById('progress-text');
     
-    if (videoPlayer.src) {
+    progressContainer.style.display = 'block';
+    progressBar.style.width = '0%';
+    progressText.textContent = 'Iniciando descarga...';
+
+    try {
+        // Usar el proxy local para evitar problemas de CORS y navegación
+        const response = await fetch(`/api/proxy-download?url=${encodeURIComponent(url)}&filename=${encodeURIComponent(filename)}`);
+        if (!response.ok) throw new Error("Error en el servidor proxy");
+
+        const reader = response.body.getReader();
+        const contentLength = +response.headers.get('Content-Length');
+        
+        let receivedLength = 0;
+        let chunks = []; 
+        
+        while(true) {
+            const {done, value} = await reader.read();
+            if (done) break;
+            chunks.push(value);
+            receivedLength += value.length;
+            
+            if (contentLength) {
+                const percent = Math.round((receivedLength / contentLength) * 100);
+                progressBar.style.width = percent + '%';
+                progressText.textContent = `Descargando: ${percent}% (${(receivedLength / 1024 / 1024).toFixed(1)} MB)`;
+            } else {
+                progressText.textContent = `Descargando: ${(receivedLength / 1024 / 1024).toFixed(1)} MB...`;
+            }
+        }
+
+        progressText.textContent = '✓ ¡Descarga completa! Guardando archivo...';
+        const blob = new Blob(chunks, { type: 'video/mp4' });
+        const downloadUrl = URL.createObjectURL(blob);
         const a = document.createElement('a');
-        a.href = videoPlayer.src;
-        a.download = title + ".mp4";
+        a.href = downloadUrl;
+        a.download = filename;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
+        URL.revokeObjectURL(downloadUrl);
+        
+        setTimeout(() => { progressContainer.style.display = 'none'; }, 5000);
+
+    } catch (e) {
+        console.error("Error downloadInline:", e);
+        progressText.textContent = "❌ Error en descarga inline.";
+        // Fallback simple a link directo si falla el proxy
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        a.click();
+    }
+}
+
+// Botón manual
+document.getElementById('btn-download').addEventListener('click', async () => {
+    const videoPlayer = document.getElementById('video-player');
+    const title = document.getElementById('video-title').textContent;
+    if (videoPlayer.src) {
+        downloadInline(videoPlayer.src, title + ".mp4");
     } else {
-        alert("Primero busca un video para descargar.");
+        alert("Busca un video primero.");
     }
 });

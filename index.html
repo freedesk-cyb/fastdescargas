@@ -49,6 +49,12 @@
             <button id="btn-download" style="width:100%; justify-content:center; padding:15px; font-size:1.1rem;">
                 <i data-lucide="download"></i> Descargar MP4
             </button>
+            <div id="progress-container" style="display:none; margin-top:15px;">
+                <div style="height:10px; background:rgba(255,255,255,0.1); border-radius:5px; overflow:hidden;">
+                    <div id="progress-bar" style="height:100%; width:0%; background:var(--primary); transition:0.3s; border-radius:5px;"></div>
+                </div>
+                <p id="progress-text" style="font-size:0.8rem; margin-top:5px; color:var(--text-muted);">Descargando: 0%</p>
+            </div>
         </div>
         
         <div id="status"></div>
