@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
-    console.log("Fastvideo v2.3 loaded - IP Bypass Active");
+    console.log("Fastvideo v2.4 loaded - IP Bypass Active");
     // Auth Variables
     const API_URL = ''; // Rutas relativas para un solo servidor unificado
     let currentUser = {
@@ -232,23 +232,22 @@ document.addEventListener('DOMContentLoaded', () => {
                 ];
                 
                 status.textContent = 'Backend bloqueado por YouTube. Usando conexión directa...';
+                console.log("Iniciando secuencia de espejos (mirrors)...");
                 
                 let count = 1;
                 for (const base of instances) {
                     try {
-                        status.textContent = `Intentando servidor de respaldo #${count}...`;
+                        status.innerHTML = `<span style="color:#fbbf24">Intentando servidor de respaldo #${count}...</span><br><small style="color:#9ca3af">Conectando a ${new URL(base).hostname}</small>`;
                         console.log(`Intentando fallback #${count}: ${base}`);
                         
                         let response;
                         let data;
                         
                         if (base.includes('workers.dev')) {
-                            // Caso especial vkrdownloader
                             response = await fetch(base + currentVideoId);
                             data = await response.json();
                             if (data.url) { downloadUrl = data.url; break; }
                         } else {
-                            // Caso Cobalt estándar
                             response = await fetch(base + "/api/json", {
                                 method: 'POST', mode: 'cors',
                                 headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
@@ -261,6 +260,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             data = await response.json();
                             if (data && data.url) { 
                                 downloadUrl = data.url; 
+                                lastErrorMessage = ""; 
                                 break; 
                             }
                         }
