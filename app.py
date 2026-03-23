@@ -45,26 +45,48 @@ def serve_static(path):
 @app.route('/api/get-metadata')
 def get_metadata():
     url = request.args.get('url')
+    log_and_print(f"📥 Solicitud metadata para: {url}")
     try:
-        with yt_dlp.YoutubeDL({'quiet': True}) as ydl:
+        # Configuración optimizada para evitar esperas largas (sin playlists)
+        ydl_opts = {
+            'quiet': True, 
+            'no_warnings': True, 
+            'noplaylist': True,
+            'skip_download': True,
+            'socket_timeout': 10
+        }
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            log_and_print("🔍 Extrayendo info de YouTube...")
             info = ydl.extract_info(url, download=False)
+            log_and_print(f"✅ Exito: {info.get('title')}")
             return jsonify({
                 "title": info.get('title'),
                 "thumbnail": info.get('thumbnail'),
                 "video_id": info.get('id')
             })
     except Exception as e:
+        log_and_print(f"❌ Error Metadata: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
 @app.route('/api/get-direct-url')
 def get_direct_url():
     video_id = request.args.get('video_id')
     url = f"https://www.youtube.com/watch?v={video_id}"
+    log_and_print(f"📥 Solicitud descarga para ID: {video_id}")
     try:
-        with yt_dlp.YoutubeDL({'format': 'best[ext=mp4]/best', 'quiet': True}) as ydl:
+        ydl_opts = {
+            'format': 'best[ext=mp4]/best', 
+            'quiet': True, 
+            'no_warnings': True, 
+            'noplaylist': True,
+            'socket_timeout': 15
+        }
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            log_and_print("🔗 Generando link directo...")
             info = ydl.extract_info(url, download=False)
             return jsonify({"url": info.get('url')})
     except Exception as e:
+        log_and_print(f"❌ Error Descarga: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
 def start_browser():
