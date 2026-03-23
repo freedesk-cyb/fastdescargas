@@ -135,6 +135,35 @@ def get_user_from_token(token):
     if not token: return None
     return fetchrow('SELECT * FROM users WHERE token = ?', (token,))
 
+@app.route('/api/health')
+def health_check():
+    diagnostics = {"env_vercel": bool(os.environ.get('VERCEL') or os.environ.get('VERCEL_URL'))}
+    db_url = os.environ.get('DATABASE_URL')
+    if not db_url:
+        diagnostics["db_configured"] = False
+        diagnostics["db_engine"] = "sqlite (fallback /tmp)"
+    else:
+        diagnostics["db_configured"] = True
+        diagnostics["db_engine"] = "postgresql"
+        # Ocultar parte de la contraseña por seguridad
+        import urllib.parse as uparse
+        url = uparse.urlparse(db_url)
+        safe_url = f"{url.scheme}://{url.username}:***@{url.hostname}{url.path}"
+        diagnostics["db_url_safe"] = safe_url
+    
+    try:
+        conn = get_db_connection()
+        c = conn.cursor()
+        c.execute('SELECT 1')
+        c.fetchone()
+        conn.close()
+        diagnostics["connection_test"] = "SUCCESS"
+    except Exception as e:
+        diagnostics["connection_test"] = "FAILED"
+        diagnostics["error"] = str(e)
+        
+    return jsonify(diagnostics)
+
 # --- ENDPOINTS MIDDLEWARE - PROTECCIÓN ---
 
 def is_authorized(request_obj, required_role=None):
