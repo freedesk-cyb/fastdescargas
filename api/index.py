@@ -34,7 +34,7 @@ def get_db_connection():
                 user=url.username,
                 password=url.password,
                 host=url.hostname,
-                port=url.port,
+                port=url.port or 5432,
                 database=url.path.lstrip('/'),
                 ssl_context=ssl_context
             )
