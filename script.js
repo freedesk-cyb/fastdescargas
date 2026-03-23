@@ -1,4 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
+    console.log("Fastvideo v2.1 loaded");
     // Auth Variables
     const API_URL = ''; // Rutas relativas para un solo servidor unificado
     let currentUser = {
@@ -258,7 +259,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 a.click();
                 document.body.removeChild(a);
             } else {
-                status.textContent = `❌ Servidores ocupados. Intenta de nuevo en unos segundos.`;
+                const fallbackUrlManual = `https://cobalt.tools/?u=${encodeURIComponent(originalUrl)}`;
+                status.innerHTML = `
+                    <p style="color: #ff6b6b; margin-bottom: 10px;">❌ Servidores ocupados en este momento.</p>
+                    <a href="${fallbackUrlManual}" target="_blank" class="btn-primary" style="background: #fbbf24; color: #000; text-decoration: none; padding: 10px; border-radius: 8px; display: inline-flex; align-items: center; gap: 5px; font-weight: bold; width: 100%; justify-content: center;">
+                        <i data-lucide="external-link" style="width:16px"></i> Usar Descargador Manual (Garantizado)
+                    </a>
+                    <p style="font-size: 0.75rem; color: #9ca3af; margin-top: 8px;">(Haz clic arriba para abrir el motor de respaldo manual en una nueva pestaña)</p>
+                `;
+                lucide.createIcons();
             }
             
             setTimeout(() => {
