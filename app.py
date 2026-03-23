@@ -183,9 +183,30 @@ if __name__ == '__main__':
 
     def open_browser():
         import time
-        time.sleep(2) # Esperar a que el servidor arranque
-        print("🌍 Abriendo el panel en tu navegador...")
-        webbrowser.open("http://127.0.0.1:5000")
+        import webbrowser
+        time.sleep(2)
+        url = "http://127.0.0.1:5000"
+        print(f"🌍 Intentando abrir {url} en Chrome...")
+        
+        # Intentar encontrar Chrome en Windows
+        chrome_paths = [
+            "C:/Program Files/Google/Chrome/Application/chrome.exe %s",
+            "C:/Program Files (x86)/Google/Chrome/Application/chrome.exe %s",
+            "chrome"
+        ]
+        
+        opened = False
+        for path in chrome_paths:
+            try:
+                browser = webbrowser.get(path)
+                browser.open(url)
+                opened = True
+                break
+            except:
+                continue
+        
+        if not opened:
+            webbrowser.open(url)
 
     with app.app_context():
         init_db()
