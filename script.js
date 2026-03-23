@@ -186,6 +186,7 @@ document.addEventListener('DOMContentLoaded', () => {
         `;
         
         lucide.createIcons();
+        let currentVideoId = metadata.video_id;
         
         document.getElementById('btn-dl-main').addEventListener('click', async () => {
             const btn = document.getElementById('btn-dl-main');
@@ -193,56 +194,38 @@ document.addEventListener('DOMContentLoaded', () => {
             const status = document.getElementById('dl-status');
             
             btn.disabled = true;
-            btnText.textContent = 'Preparando descarga...';
-            status.textContent = 'Obteniendo enlace directo desde el navegador (sin bloqueos de servidor)...';
+            btnText.textContent = 'Preparando...';
+            status.textContent = 'Generando enlace de alta velocidad...';
             
             let downloadUrl = null;
-            let lastErrorMessage = "Todos los servidores de descarga están saturados.";
+            let lastErrorMessage = "Error al generar enlace.";
             
-            // Primero intentamos con Vevioz API (muy estable y permite CORS)
+            // 1. Intentamos vía Backend (Savetube - Más estable)
             try {
-                console.log("Intentando con Vevioz API...");
-                const veviozRes = await fetch(`https://api.vevioz.com/apis/download?url=${encodeURIComponent(originalUrl)}&format=mp4`);
-                const veviozData = await veviozRes.json();
-                if (veviozData && veviozData.download_url) {
-                    downloadUrl = veviozData.download_url;
+                if (currentVideoId) {
+                    const res = await fetch(`${API_URL}/api/get-direct-url?video_id=${currentVideoId}`, {
+                        headers: { 'Authorization': `Bearer ${currentUser.token}` }
+                    });
+                    const data = await res.json();
+                    if (data.url) downloadUrl = data.url;
                 }
             } catch (e) {
-                console.warn("Vevioz API falló:", e);
+                console.warn("Backend Savetube falló, intentando espejos frontend...");
             }
             
+            // 2. Fallback a Espejos Cobalt (Frontend)
             if (!downloadUrl) {
-                // Si Vevioz falla, probamos los espejos de Cobalt
-                const instances = [
-                    "https://cobalt.crushready.com",
-                    "https://cobalt.hyrax.dedyn.io",
-                    "https://cobalt-api.lre.pl",
-                    "https://api.cobalt.tools"
-                ];
-                
-                const payload = { url: originalUrl, videoQuality: "720" };
-                
+                const instances = ["https://cobalt.crushready.com", "https://cobalt.hyrax.dedyn.io"];
                 for (const base of instances) {
-                    for (const path of ["/api/json", "/"]) {
-                        const apiUrl = base + path;
-                        try {
-                            const response = await fetch(apiUrl, {
-                                method: 'POST',
-                                mode: 'cors',
-                                headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
-                                body: JSON.stringify(payload)
-                            });
-                            
-                            if (response.status === 401 || response.status === 403) continue;
-                            
-                            const data = await response.json();
-                            if (data && data.url) {
-                                downloadUrl = data.url;
-                                break;
-                            }
-                        } catch (e) { continue; }
-                    }
-                    if (downloadUrl) break;
+                    try {
+                        const response = await fetch(base + "/api/json", {
+                            method: 'POST', mode: 'cors',
+                            headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ url: originalUrl, videoQuality: "720" })
+                        });
+                        const data = await response.json();
+                        if (data && data.url) { downloadUrl = data.url; break; }
+                    } catch (e) { continue; }
                 }
             }
             
@@ -257,14 +240,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 a.click();
                 document.body.removeChild(a);
             } else {
-                status.textContent = `❌ ${lastErrorMessage}. Por favor, prueba otro video o inténtalo más tarde.`;
+                status.textContent = `❌ Servidores ocupados. Intenta de nuevo en unos segundos.`;
             }
             
             setTimeout(() => {
                 btn.disabled = false;
                 btnText.textContent = 'Descargar MP4';
                 lucide.createIcons();
-            }, 5000);
+            }, 4000);
         });
         
         resultArea.style.display = 'block';

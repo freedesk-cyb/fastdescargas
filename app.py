@@ -289,11 +289,56 @@ def get_metadata():
         return jsonify({
             "title": data.get("title", "YouTube Video"),
             "thumbnail": thumbnail,
+            "video_id": video_id,
             "duration": 0
         })
     except Exception as e:
         logging.error(f"Error getting metadata via oEmbed: {e}")
         return jsonify({"error": "No se pudo obtener la información del video."}), 500
+
+@app.route('/api/get-direct-url', methods=['GET'])
+def get_direct_url():
+    if not is_authorized(request):
+        return jsonify({"error": "No autorizado"}), 401
+    
+    video_id = request.args.get('video_id')
+    if not video_id:
+        return jsonify({"error": "Falta ID de video"}), 400
+        
+    try:
+        import urllib.request as ureq
+        # Usamos SaveTube API (muy estable para backends)
+        api_url = f"https://api.savetube.me/info/{video_id}"
+        req = ureq.Request(api_url, headers={
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
+        })
+        
+        with ureq.urlopen(req, timeout=15) as resp:
+            data = json.loads(resp.read().decode('utf-8'))
+            
+        if data.get('status') == True and data.get('data'):
+            # El campo puede llamarse 'download_url' o estar dentro de una lista de formatos
+            # SaveTube usualmente retorna un objeto con info y formatos
+            res_data = data['data']
+            video_formats = res_data.get('video_formats', [])
+            
+            # Buscamos el mejor formato MP4 (720p o similar)
+            best_url = None
+            for fmt in video_formats:
+                if '.mp4' in fmt.get('url', '') or fmt.get('quality') == '720':
+                    best_url = fmt['url']
+                    break
+            
+            if not best_url and video_formats:
+                best_url = video_formats[0]['url']
+                
+            if best_url:
+                return jsonify({"url": best_url})
+                
+        return jsonify({"error": "No se encontró enlace de descarga para este video."}), 500
+    except Exception as e:
+        logging.error(f"Error en Savetube API: {e}")
+        return jsonify({"error": "Servidor de descarga ocupado, intenta de nuevo."}), 500
 
 if __name__ == '__main__':
     app.run(port=5000, threaded=True)
