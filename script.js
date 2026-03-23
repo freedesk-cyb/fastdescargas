@@ -196,62 +196,54 @@ document.addEventListener('DOMContentLoaded', () => {
             btnText.textContent = 'Preparando descarga...';
             status.textContent = 'Obteniendo enlace directo desde el navegador (sin bloqueos de servidor)...';
             
-            // Lista expandida de espejos (mirrors) de Cobalt v7 y v10
-            const instances = [
-                "https://cobalt.crushready.com",
-                "https://cobalt.hyrax.dedyn.io",
-                "https://cobalt-api.lre.pl",
-                "https://api.cobalt.tools",
-                "https://cobalt.vxtwitter.com"
-            ];
-            
-            const payload = {
-                url: originalUrl,
-                videoQuality: "720"
-            };
-            
             let downloadUrl = null;
             let lastErrorMessage = "Todos los servidores de descarga están saturados.";
             
-            for (const base of instances) {
-                // Probamos ambas rutas comunes por cada servidor
-                for (const path of ["/api/json", "/"]) {
-                    const apiUrl = base + path;
-                    try {
-                        console.log(`Buscando video en: ${apiUrl}`);
-                        const response = await fetch(apiUrl, {
-                            method: 'POST',
-                            mode: 'cors',
-                            headers: {
-                                'Accept': 'application/json',
-                                'Content-Type': 'application/json'
-                            },
-                            body: JSON.stringify(payload)
-                        });
-                        
-                        // Si el servidor responde pero da error de autenticación (JWT), saltamos al siguiente espejo
-                        if (response.status === 401 || response.status === 403) {
-                            console.warn(`${apiUrl} requiere autenticación, saltando...`);
-                            continue;
-                        }
-                        
-                        const data = await response.json();
-                        
-                        if (data && data.url) {
-                            downloadUrl = data.url;
-                            break;
-                        } else if (data && data.status === 'error' && data.error && data.error.code === 'error.api.auth.jwt.missing') {
-                            console.warn(`${apiUrl} pide JWT, saltando...`);
-                            continue;
-                        } else if (data && data.error) {
-                            lastErrorMessage = data.error.code || "Error desconocido";
-                        }
-                    } catch (e) {
-                        // Error de red o CORS, seguimos probando el siguiente espejo
-                        continue;
-                    }
+            // Primero intentamos con Vevioz API (muy estable y permite CORS)
+            try {
+                console.log("Intentando con Vevioz API...");
+                const veviozRes = await fetch(`https://api.vevioz.com/apis/download?url=${encodeURIComponent(originalUrl)}&format=mp4`);
+                const veviozData = await veviozRes.json();
+                if (veviozData && veviozData.download_url) {
+                    downloadUrl = veviozData.download_url;
                 }
-                if (downloadUrl) break;
+            } catch (e) {
+                console.warn("Vevioz API falló:", e);
+            }
+            
+            if (!downloadUrl) {
+                // Si Vevioz falla, probamos los espejos de Cobalt
+                const instances = [
+                    "https://cobalt.crushready.com",
+                    "https://cobalt.hyrax.dedyn.io",
+                    "https://cobalt-api.lre.pl",
+                    "https://api.cobalt.tools"
+                ];
+                
+                const payload = { url: originalUrl, videoQuality: "720" };
+                
+                for (const base of instances) {
+                    for (const path of ["/api/json", "/"]) {
+                        const apiUrl = base + path;
+                        try {
+                            const response = await fetch(apiUrl, {
+                                method: 'POST',
+                                mode: 'cors',
+                                headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
+                                body: JSON.stringify(payload)
+                            });
+                            
+                            if (response.status === 401 || response.status === 403) continue;
+                            
+                            const data = await response.json();
+                            if (data && data.url) {
+                                downloadUrl = data.url;
+                                break;
+                            }
+                        } catch (e) { continue; }
+                    }
+                    if (downloadUrl) break;
+                }
             }
             
             if (downloadUrl) {
