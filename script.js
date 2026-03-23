@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
-    console.log("Fastvideo v2.4 loaded - IP Bypass Active");
+    console.log("Fastvideo v4.0 LOCAL Loaded");
     // Auth Variables
     const API_URL = ''; // Rutas relativas para un solo servidor unificado
     let currentUser = {
@@ -201,10 +201,10 @@ document.addEventListener('DOMContentLoaded', () => {
             let downloadUrl = null;
             let lastErrorMessage = "Error al generar enlace.";
             
-            // 1. Intentamos vía Backend (Savetube - Más estable)
+            // 1. Intento Directo vía Backend Local (yt-dlp)
             try {
                 if (currentVideoId) {
-                    const res = await fetch(`${API_URL}/api/get-direct-url?video_id=${currentVideoId}`, {
+                    const res = await fetch(`/api/get-direct-url?video_id=${currentVideoId}`, {
                         headers: { 'Authorization': `Bearer ${currentUser.token}` }
                     });
                     const data = await res.json();
@@ -215,60 +215,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 }
             } catch (e) {
-                console.warn("Backend Savetube falló, intentando espejos frontend...");
-            }
-            
-            // 2. Fallback a Espejos Cobalt (Frontend) - Intentamos múltiples instancias
-            if (!downloadUrl) {
-                const instances = [
-                    "https://cobalt.hyrax.dedyn.io",
-                    "https://cobalt.crushready.com",
-                    "https://cobalt.unv.ovh",
-                    "https://cobalt.moe",
-                    "https://api.cobalt.tools",
-                    "https://cobalt.sh",
-                    "https://cobalt.unv.ovh",
-                    "https://api.vkrdownloader.workers.dev/server?v=" // Fallback especial
-                ];
-                
-                status.textContent = 'Backend bloqueado por YouTube. Usando conexión directa...';
-                console.log("Iniciando secuencia de espejos (mirrors)...");
-                
-                let count = 1;
-                for (const base of instances) {
-                    try {
-                        status.innerHTML = `<span style="color:#fbbf24">Intentando servidor de respaldo #${count}...</span><br><small style="color:#9ca3af">Conectando a ${new URL(base).hostname}</small>`;
-                        console.log(`Intentando fallback #${count}: ${base}`);
-                        
-                        let response;
-                        let data;
-                        
-                        if (base.includes('workers.dev')) {
-                            response = await fetch(base + currentVideoId);
-                            data = await response.json();
-                            if (data.url) { downloadUrl = data.url; break; }
-                        } else {
-                            response = await fetch(base + "/api/json", {
-                                method: 'POST', mode: 'cors',
-                                headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ 
-                                    url: originalUrl, 
-                                    videoQuality: "720",
-                                    downloadMode: "attachment"
-                                })
-                            });
-                            data = await response.json();
-                            if (data && data.url) { 
-                                downloadUrl = data.url; 
-                                lastErrorMessage = ""; 
-                                break; 
-                            }
-                        }
-                    } catch (e) { 
-                        console.warn(`Mirror #${count} falló:`, e);
-                    }
-                    count++;
-                }
+                console.error("Error en backend local:", e);
+                lastErrorMessage = "Error de conexión con el servidor local.";
             }
             
             if (downloadUrl) {
