@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
-    console.log("Fastvideo v2.2 loaded");
+    console.log("Fastvideo v2.3 loaded - IP Bypass Active");
     // Auth Variables
     const API_URL = ''; // Rutas relativas para un solo servidor unificado
     let currentUser = {
@@ -221,34 +221,53 @@ document.addEventListener('DOMContentLoaded', () => {
             // 2. Fallback a Espejos Cobalt (Frontend) - Intentamos múltiples instancias
             if (!downloadUrl) {
                 const instances = [
-                    "https://cobalt.crushready.com", 
                     "https://cobalt.hyrax.dedyn.io",
+                    "https://cobalt.crushready.com",
+                    "https://cobalt.unv.ovh",
+                    "https://cobalt.moe",
                     "https://api.cobalt.tools",
-                    "https://cobalt.unv.ovh"
+                    "https://cobalt.sh",
+                    "https://cobalt.unv.ovh",
+                    "https://api.vkrdownloader.workers.dev/server?v=" // Fallback especial
                 ];
-                status.textContent = 'Backend ocupado, intentando servidores de emergencia...';
+                
+                status.textContent = 'Backend bloqueado por YouTube. Usando conexión directa...';
+                
+                let count = 1;
                 for (const base of instances) {
                     try {
-                        console.log(`Intentando fallback: ${base}`);
-                        const response = await fetch(base + "/api/json", {
-                            method: 'POST', mode: 'cors',
-                            headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ 
-                                url: originalUrl, 
-                                videoQuality: "720",
-                                downloadMode: "attachment" // Forzar descarga
-                            })
-                        });
-                        const data = await response.json();
-                        if (data && data.url) { 
-                            downloadUrl = data.url; 
-                            console.log(`Éxito con fallback: ${base}`);
-                            break; 
+                        status.textContent = `Intentando servidor de respaldo #${count}...`;
+                        console.log(`Intentando fallback #${count}: ${base}`);
+                        
+                        let response;
+                        let data;
+                        
+                        if (base.includes('workers.dev')) {
+                            // Caso especial vkrdownloader
+                            response = await fetch(base + currentVideoId);
+                            data = await response.json();
+                            if (data.url) { downloadUrl = data.url; break; }
+                        } else {
+                            // Caso Cobalt estándar
+                            response = await fetch(base + "/api/json", {
+                                method: 'POST', mode: 'cors',
+                                headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ 
+                                    url: originalUrl, 
+                                    videoQuality: "720",
+                                    downloadMode: "attachment"
+                                })
+                            });
+                            data = await response.json();
+                            if (data && data.url) { 
+                                downloadUrl = data.url; 
+                                break; 
+                            }
                         }
                     } catch (e) { 
-                        console.error(`Fallback falló (${base}):`, e);
-                        continue; 
+                        console.warn(`Mirror #${count} falló:`, e);
                     }
+                    count++;
                 }
             }
             

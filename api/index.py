@@ -361,46 +361,32 @@ def get_direct_url():
             logging.error(f"yt-dlp error: {e}")
 
         # 2. Servidores Alternativos (Fallback)
-        # Intento con múltiples instancias de Cobalt (Servidor)
-        cobalt_instances = [
-            "https://api.cobalt.tools",
+        # Lista de espejos recomendados para el frontend
+        mirrors = [
             "https://cobalt.hyrax.dedyn.io",
             "https://cobalt.crushready.com",
             "https://cobalt.unv.ovh",
-            "https://cobalt.sh"
+            "https://cobalt.moe",
+            "https://api.cobalt.tools",
+            "https://cobalt.sh",
+            "https://cobalt.unv.ovh"
         ]
         
-        for instance in cobalt_instances:
-            try:
-                cobalt_api = f"{instance}/api/json"
-                payload = json.dumps({
-                    "url": video_url, 
-                    "videoQuality": "720",
-                    "downloadMode": "attachment"
-                }).encode('utf-8')
-                req = ureq.Request(cobalt_api, data=payload, headers={
-                    "Accept": "application/json",
-                    "Content-Type": "application/json",
-                    "User-Agent": "Mozilla/5.0"
-                })
-                with ureq.urlopen(req, timeout=7) as resp:
-                    data = json.loads(resp.read().decode('utf-8'))
-                    if data.get('url'):
-                        return jsonify({"url": data['url']})
-            except Exception as e:
-                logging.error(f"Cobalt backend error ({instance}): {e}")
-
-        # Otros fallbacks adicionales
-        # Savetube o Onedownloader pueden estar bloqueando Vercel, pero intentamos una última vez.
+        # Intento rápido con Cobalt (Servidor) - Solo probamos la principal para ahorrar tiempo
         try:
-            api_url = f"https://api.savetube.me/info/{video_id}"
-            req = ureq.Request(api_url, headers={"User-Agent": "Mozilla/5.0"})
-            with ureq.urlopen(req, timeout=8) as resp:
+            cobalt_api = "https://api.cobalt.tools/api/json"
+            payload = json.dumps({"url": video_url, "videoQuality": "720", "downloadMode": "attachment"}).encode('utf-8')
+            req = ureq.Request(cobalt_api, data=payload, headers={"Accept": "application/json", "Content-Type": "application/json", "User-Agent": "Mozilla/5.0"})
+            with ureq.urlopen(req, timeout=5) as resp:
                 data = json.loads(resp.read().decode('utf-8'))
-                if data.get('data'): return jsonify({"url": data['data']['video_formats'][0]['url']})
+                if data.get('url'): return jsonify({"url": data['url']})
         except: pass
-        
-        return jsonify({"error": "Todos los motores de descarga están saturados. Verifica el link de YouTube o intenta más tarde."}), 500
+
+        return jsonify({
+            "error": "IP_BLOCKED",
+            "message": "YouTube ha bloqueado el acceso desde el servidor (Vercel). Intentando descarga directa desde tu navegador...",
+            "mirrors": mirrors
+        }), 403
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
