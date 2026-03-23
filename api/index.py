@@ -4,6 +4,9 @@ import logging
 import sys
 import os
 import secrets
+import yt_dlp
+import urllib.request as ureq
+import urllib.parse as uparse
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask import Flask, request, Response, jsonify
 from flask_cors import CORS
@@ -15,17 +18,22 @@ logging.basicConfig(level=logging.INFO)
 
 # --- CONFIGURACIÓN BASE DE DATOS (Portable para PostgreSQL y SQLite) ---
 def get_db_connection():
-    db_url = os.environ.get('DATABASE_URL')
+    # Vercel Postgres provee POSTGRES_URL por defecto
+    db_url = os.environ.get('POSTGRES_URL') or os.environ.get('DATABASE_URL')
     try:
         if db_url:
             import pg8000.dbapi
             import urllib.parse as uparse
             import ssl
             
-            uparse.uses_netloc.append("postgres")
+            # Normalizar URL para pg8000 (necesita postgresql://)
+            if db_url and db_url.startswith("postgres://"):
+                db_url = db_url.replace("postgres://", "postgresql://", 1)
+            
+            uparse.uses_netloc.append("postgresql")
             url = uparse.urlparse(db_url)
             
-            # Forzar SSL para Render/Neon/Heroku
+            # Configuración SSL robusta para Neon/Vercel Postgres
             ssl_context = ssl.create_default_context()
             ssl_context.check_hostname = False
             ssl_context.verify_mode = ssl.CERT_NONE
@@ -126,10 +134,16 @@ def init_db():
         logging.info("📝 Creado el usuario por defecto: admin/admin")
     conn.close()
 
-try:
-    init_db()
-except Exception as e:
-    logging.error(f"⚠️ Error al inicializar DB (en Vercel puede fallar en frio): {e}")
+# Inicialización diferida para evitar errores de conexión prematura
+def init_db_safe():
+    try:
+        init_db()
+    except Exception as e:
+        logging.error(f"⚠️ Error al inicializar DB (puede ser normal en Vercel si no hay DB configurada): {e}")
+
+# Ejecutamos la inicialización dentro del contexto de la app si es posible
+with app.app_context():
+    init_db_safe()
 
 def get_user_from_token(token):
     if not token: return None
@@ -137,8 +151,9 @@ def get_user_from_token(token):
 
 @app.route('/api/health')
 def health_check():
-    diagnostics = {"env_vercel": bool(os.environ.get('VERCEL') or os.environ.get('VERCEL_URL'))}
-    db_url = os.environ.get('DATABASE_URL')
+    diagnostics = {}
+    diagnostics["env_vercel"] = bool(os.environ.get('VERCEL') or os.environ.get('VERCEL_URL'))
+    db_url = os.environ.get('POSTGRES_URL') or os.environ.get('DATABASE_URL')
     if not db_url:
         diagnostics["db_configured"] = False
         diagnostics["db_engine"] = "sqlite (fallback /tmp)"
@@ -146,7 +161,6 @@ def health_check():
         diagnostics["db_configured"] = True
         diagnostics["db_engine"] = "postgresql"
         # Ocultar parte de la contraseña por seguridad
-        import urllib.parse as uparse
         url = uparse.urlparse(db_url)
         safe_url = f"{url.scheme}://{url.username}:***@{url.hostname}{url.path}"
         diagnostics["db_url_safe"] = safe_url
@@ -309,7 +323,6 @@ def get_metadata():
     url = request.args.get('url')
     if not url: return jsonify({"error": "No URL"}), 400
     try:
-        import urllib.request as ureq, urllib.parse as uparse
         oembed_url = f"https://www.youtube.com/oembed?url={uparse.quote(url)}&format=json"
         with ureq.urlopen(oembed_url, timeout=10) as resp:
             data = json.loads(resp.read().decode('utf-8'))
@@ -332,25 +345,43 @@ def get_direct_url():
     if not video_id: return jsonify({"error": "Falta ID"}), 400
     video_url = f"https://www.youtube.com/watch?v={video_id}"
     try:
-        import urllib.request as ureq
-        # 1. Onedownloader
+        # 1. Intento Primario: yt-dlp (Alta Fiabilidad)
+        try:
+            ydl_opts = {
+                'format': 'best[ext=mp4]/best', # Priorizar MP4 prefusionado (hasta 720p)
+                'quiet': True,
+                'no_warnings': True,
+                'skip_download': True,
+            }
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                info = ydl.extract_info(video_url, download=False)
+                if info.get('url'):
+                    return jsonify({"url": info['url']})
+        except Exception as e:
+            logging.error(f"yt-dlp error: {e}")
+
+        # 2. Servidores Alternativos (Fallback)
+        # Onedownloader
         try:
             api_url = f"https://api.onedownloader.com/get-info?url={video_url}"
             req = ureq.Request(api_url, headers={"User-Agent": "Mozilla/5.0"})
-            with ureq.urlopen(req, timeout=10) as resp:
+            with ureq.urlopen(req, timeout=8) as resp:
                 data = json.loads(resp.read().decode('utf-8'))
                 if data.get('status') == 'success' and data.get('formats'):
                     for fmt in data['formats']:
-                        if fmt.get('extension') == 'mp4' and fmt.get('url'): return jsonify({"url": fmt['url']})
+                        if fmt.get('extension') == 'mp4' and fmt.get('url'): 
+                            return jsonify({"url": fmt['url']})
         except: pass
-        # 2. Savetube
+        
+        # Savetube
         try:
             api_url = f"https://api.savetube.me/info/{video_id}"
             req = ureq.Request(api_url, headers={"User-Agent": "Mozilla/5.0"})
-            with ureq.urlopen(req, timeout=10) as resp:
+            with ureq.urlopen(req, timeout=8) as resp:
                 data = json.loads(resp.read().decode('utf-8'))
                 if data.get('data'): return jsonify({"url": data['data']['video_formats'][0]['url']})
         except: pass
+        
         return jsonify({"error": "Ocupado"}), 500
     except Exception as e:
         return jsonify({"error": str(e)}), 500

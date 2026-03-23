@@ -213,9 +213,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.warn("Backend Savetube falló, intentando espejos frontend...");
             }
             
-            // 2. Fallback a Espejos Cobalt (Frontend)
+            // 2. Fallback a Espejos Cobalt (Frontend) - Intentamos múltiples instancias
             if (!downloadUrl) {
-                const instances = ["https://cobalt.crushready.com", "https://cobalt.hyrax.dedyn.io"];
+                const instances = [
+                    "https://cobalt.crushready.com", 
+                    "https://cobalt.hyrax.dedyn.io",
+                    "https://api.cobalt.tools",
+                    "https://cobalt.unv.ovh"
+                ];
+                status.textContent = 'Backend ocupado, intentando servidores de emergencia...';
                 for (const base of instances) {
                     try {
                         const response = await fetch(base + "/api/json", {
@@ -224,7 +230,10 @@ document.addEventListener('DOMContentLoaded', () => {
                             body: JSON.stringify({ url: originalUrl, videoQuality: "720" })
                         });
                         const data = await response.json();
-                        if (data && data.url) { downloadUrl = data.url; break; }
+                        if (data && data.url) { 
+                            downloadUrl = data.url; 
+                            break; 
+                        }
                     } catch (e) { continue; }
                 }
             }
