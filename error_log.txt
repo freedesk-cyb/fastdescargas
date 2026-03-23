@@ -73,3 +73,20 @@
 2026-03-23 00:46:30,454 - INFO - \U0001f4e5 Solicitud descarga para ID: j2WoXUG2h8o
 2026-03-23 00:46:30,591 - INFO - \U0001f517 Generando link directo...
 2026-03-23 00:46:32,906 - INFO - 127.0.0.1 - - [23/Mar/2026 00:46:32] "GET /api/get-direct-url?video_id=j2WoXUG2h8o HTTP/1.1" 200 -
+2026-03-23 00:49:41,031 - INFO - \U0001f50d Verificando librerias...
+2026-03-23 00:49:43,060 - INFO - 
+\U0001f680 Fastvideo LOCAL v5.2 Iniciado!
+2026-03-23 00:49:43,060 - INFO - Si no se abre solo, ve a: http://127.0.0.1:5000
+2026-03-23 00:49:43,102 - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+2026-03-23 00:49:43,102 - INFO - [33mPress CTRL+C to quit[0m
+2026-03-23 00:49:45,060 - INFO - \U0001f30d Abriendo http://127.0.0.1:5000 en tu navegador...
+2026-03-23 00:49:45,381 - INFO - 127.0.0.1 - - [23/Mar/2026 00:49:45] "GET / HTTP/1.1" 200 -
+2026-03-23 00:49:45,517 - INFO - 127.0.0.1 - - [23/Mar/2026 00:49:45] "GET /script.js HTTP/1.1" 200 -
+2026-03-23 00:49:48,805 - INFO - \U0001f4e5 Solicitud metadata para: https://www.youtube.com/watch?v=j2WoXUG2h8o&list=RDj2WoXUG2h8o&start_radio=1
+2026-03-23 00:49:48,933 - INFO - \U0001f50d Extrayendo info de YouTube...
+2026-03-23 00:49:51,349 - INFO - \u2705 Exito: Dj Snake - Middle (Sub Español - Lyrics) [OFFICIAL VIDEO]
+2026-03-23 00:49:51,350 - INFO - 127.0.0.1 - - [23/Mar/2026 00:49:51] "GET /api/get-metadata?url=https://www.youtube.com/watch?v%3Dj2WoXUG2h8o%26list%3DRDj2WoXUG2h8o%26start_radio%3D1 HTTP/1.1" 200 -
+2026-03-23 00:49:51,361 - INFO - \U0001f4e5 Solicitud descarga para ID: j2WoXUG2h8o
+2026-03-23 00:49:51,490 - INFO - \U0001f517 Generando link directo...
+2026-03-23 00:49:54,277 - INFO - 127.0.0.1 - - [23/Mar/2026 00:49:54] "GET /api/get-direct-url?video_id=j2WoXUG2h8o HTTP/1.1" 200 -

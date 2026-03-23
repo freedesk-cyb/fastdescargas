@@ -46,10 +46,10 @@ document.getElementById('btn-fetch').addEventListener('click', async () => {
                 videoPlayer.style.display = 'block';
                 videoPlayer.play().catch(e => console.log("Auto-play bloqueado"));
                 
-                status.innerHTML = "✅ <b>¡Listo!</b> Iniciando descarga en el panel...";
+                status.innerHTML = "✅ <b>¡Listo!</b> Ya puedes ver el video arriba o descargarlo.";
                 
-                // --- INLINE DOWNLOAD ---
-                downloadInline(dlData.url, data.title + ".mp4");
+                // --- ELIMINADA AUTO DESCARGA ---
+                // No disparamos la descarga sola para evitar que el navegador cambie de panel
             } else {
                 status.innerHTML = "❌ No se pudo conectar el reproductor.";
             }
