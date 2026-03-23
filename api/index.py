@@ -119,7 +119,10 @@ def init_db():
         logging.info("📝 Creado el usuario por defecto: admin/admin")
     conn.close()
 
-init_db()
+try:
+    init_db()
+except Exception as e:
+    logging.error(f"⚠️ Error al inicializar DB (en Vercel puede fallar en frio): {e}")
 
 def get_user_from_token(token):
     if not token: return None
