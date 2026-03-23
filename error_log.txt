@@ -90,3 +90,32 @@
 2026-03-23 00:49:51,361 - INFO - \U0001f4e5 Solicitud descarga para ID: j2WoXUG2h8o
 2026-03-23 00:49:51,490 - INFO - \U0001f517 Generando link directo...
 2026-03-23 00:49:54,277 - INFO - 127.0.0.1 - - [23/Mar/2026 00:49:54] "GET /api/get-direct-url?video_id=j2WoXUG2h8o HTTP/1.1" 200 -
+2026-03-23 00:54:08,519 - INFO - \U0001f50d Verificando librerias...
+2026-03-23 00:54:09,637 - INFO - 
+\U0001f680 Fastvideo LOCAL v5.2 Iniciado!
+2026-03-23 00:54:09,638 - INFO - Si no se abre solo, ve a: http://127.0.0.1:5000
+2026-03-23 00:54:09,678 - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+2026-03-23 00:54:09,678 - INFO - [33mPress CTRL+C to quit[0m
+2026-03-23 00:54:11,637 - INFO - \U0001f30d Abriendo http://127.0.0.1:5000 en tu navegador...
+2026-03-23 00:54:12,104 - INFO - 127.0.0.1 - - [23/Mar/2026 00:54:12] "GET / HTTP/1.1" 200 -
+2026-03-23 00:54:12,302 - INFO - 127.0.0.1 - - [23/Mar/2026 00:54:12] "GET /script.js HTTP/1.1" 200 -
+2026-03-23 00:54:17,817 - INFO - \U0001f4e5 Solicitud metadata para: https://www.youtube.com/watch?v=j2WoXUG2h8o&list=RDj2WoXUG2h8o&start_radio=1
+2026-03-23 00:54:17,990 - INFO - \U0001f50d Extrayendo info de YouTube...
+2026-03-23 00:54:20,258 - INFO - \u2705 Exito: Dj Snake - Middle (Sub Español - Lyrics) [OFFICIAL VIDEO]
+2026-03-23 00:54:20,260 - INFO - 127.0.0.1 - - [23/Mar/2026 00:54:20] "GET /api/get-metadata?url=https://www.youtube.com/watch?v%3Dj2WoXUG2h8o%26list%3DRDj2WoXUG2h8o%26start_radio%3D1 HTTP/1.1" 200 -
+2026-03-23 00:54:20,271 - INFO - \U0001f4e5 Solicitud descarga para ID: j2WoXUG2h8o
+2026-03-23 00:54:20,432 - INFO - \U0001f517 Generando link directo...
+2026-03-23 00:54:22,786 - INFO - 127.0.0.1 - - [23/Mar/2026 00:54:22] "GET /api/get-direct-url?video_id=j2WoXUG2h8o HTTP/1.1" 200 -
+2026-03-23 00:54:22,800 - INFO - 127.0.0.1 - - [23/Mar/2026 00:54:22] "[33mGET /api/proxy-download?url=https://rr1---sn-ja5gv2x-aphel.googlevideo.com/videoplayback?expire%3D1774266862%26ei%3DjtXAaYe3DZGuobIPofrhqQI%26ip%3D179.6.169.46%26id%3Do-AFC_69cIk2LptB_UEFBVeIO-gnGIBUSef5zcHll2P16Z%26itag%3D18%26source%3Dyoutube%26requiressl%3Dyes%26xpc%3DEgVo2aDSNQ%253D%253D%26cps%3D453%26met%3D1774245262%252C%26mh%3Dt8%26mm%3D31%252C29%26mn%3Dsn-ja5gv2x-aphel%252Csn-nja7snll%26ms%3Dau%252Crdu%26mv%3Dm%26mvi%3D1%26pl%3D23%26rms%3Dau%252Cau%26initcwndbps%3D1991250%26bui%3DAUUZDGIFn1OwBEM_G-pVWNXM5RG0fFevlRn7GJDLCOStIlbEweGEV_s097kD_y18wmIGNBlmdCyXSJMg%26spc%3DjlWavQf9jWJmQz7GBu9WFbZN6hOErjO3VwQrtgHFjhb2EUPES3v8%26vprv%3D1%26svpuc%3D1%26xtags%3Dheaudio%253Dtrue%26mime%3Dvideo%252Fmp4%26rqh%3D1%26cnr%3D14%26ratebypass%3Dyes%26dur%3D289.274%26lmt%3D1707244044569625%26mt%3D1774244719%26fvip%3D5%26fexp%3D51565115%252C51565681%252C51791334%26c%3DANDROID_VR%26txp%3D5538434%26sparams%3Dexpire%252Cei%252Cip%252Cid%252Citag%252Csource%252Crequiressl%252Cxpc%252Cbui%252Cspc%252Cvprv%252Csvpuc%252Cxtags%252Cmime%252Crqh%252Ccnr%252Cratebypass%252Cdur%252Clmt%26sig%3DAHEqNM4wRAIgbWcPpTjaSdbstXU92iena8zsUlGlgU9WyU5LT-s910gCIAhuIeEgegdSSDP3nquKrOt-Rv5BgNtMfdxssamkdyi1%26lsparams%3Dcps%252Cmet%252Cmh%252Cmm%252Cmn%252Cms%252Cmv%252Cmvi%252Cpl%252Crms%252Cinitcwndbps%26lsig%3DAPaTxxMwRQIgMxbVSvcKF7LGnm7TxIVPmdqmzhaEPSivSrfQj9wDtuMCIQDZMOT-_kHXZNsRXPS2lZ-SF75v6lN-QgpyhZCcW-iK4A%253D%253D&filename=Dj%20Snake%20-%20Middle%20(Sub%20Español%20-%20Lyrics)%20[OFFICIAL%20VIDEO].mp4 HTTP/1.1[0m" 404 -
+2026-03-23 00:54:32,567 - INFO - 127.0.0.1 - - [23/Mar/2026 00:54:32] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+2026-03-23 00:54:37,583 - INFO - 127.0.0.1 - - [23/Mar/2026 00:54:37] "[36mGET / HTTP/1.1[0m" 304 -
+2026-03-23 00:54:37,715 - INFO - 127.0.0.1 - - [23/Mar/2026 00:54:37] "[36mGET /script.js HTTP/1.1[0m" 304 -
+2026-03-23 00:54:41,053 - INFO - \U0001f4e5 Solicitud metadata para: https://www.youtube.com/watch?v=j2WoXUG2h8o&list=RDj2WoXUG2h8o&start_radio=1
+2026-03-23 00:54:41,226 - INFO - \U0001f50d Extrayendo info de YouTube...
+2026-03-23 00:54:43,496 - INFO - \u2705 Exito: Dj Snake - Middle (Sub Español - Lyrics) [OFFICIAL VIDEO]
+2026-03-23 00:54:43,497 - INFO - 127.0.0.1 - - [23/Mar/2026 00:54:43] "GET /api/get-metadata?url=https://www.youtube.com/watch?v%3Dj2WoXUG2h8o%26list%3DRDj2WoXUG2h8o%26start_radio%3D1 HTTP/1.1" 200 -
+2026-03-23 00:54:43,509 - INFO - \U0001f4e5 Solicitud descarga para ID: j2WoXUG2h8o
+2026-03-23 00:54:43,700 - INFO - \U0001f517 Generando link directo...
+2026-03-23 00:54:45,818 - INFO - 127.0.0.1 - - [23/Mar/2026 00:54:45] "GET /api/get-direct-url?video_id=j2WoXUG2h8o HTTP/1.1" 200 -
+2026-03-23 00:54:45,830 - INFO - 127.0.0.1 - - [23/Mar/2026 00:54:45] "[33mGET /api/proxy-download?url=https://rr1---sn-ja5gv2x-aphel.googlevideo.com/videoplayback?expire%3D1774266885%26ei%3DpdXAaaiUELatobIPusb5yAc%26ip%3D179.6.169.46%26id%3Do-AAsMgCLcJ2azXWnhHgSg7LGjEu0MKMDNIqP62vyB28z8%26itag%3D18%26source%3Dyoutube%26requiressl%3Dyes%26xpc%3DEgVo2aDSNQ%253D%253D%26cps%3D428%26met%3D1774245285%252C%26mh%3Dt8%26mm%3D31%252C29%26mn%3Dsn-ja5gv2x-aphel%252Csn-nja7snll%26ms%3Dau%252Crdu%26mv%3Dm%26mvi%3D1%26pcm2cms%3Dyes%26pl%3D23%26rms%3Dau%252Cau%26initcwndbps%3D1991250%26bui%3DAUUZDGJteu6GqlROYGZsnslkw88zRntKKLbmWG1lSRItAFj73vAB7CKmjj8R1nMBSNUTy_eaA9iyecbd%26spc%3DjlWavYiwM04kqHFWWcTU4IuZBhPunq8MdhpSvlJkOcYR9i4Zd7eS%26vprv%3D1%26svpuc%3D1%26xtags%3Dheaudio%253Dtrue%26mime%3Dvideo%252Fmp4%26rqh%3D1%26cnr%3D14%26ratebypass%3Dyes%26dur%3D289.274%26lmt%3D1707244044569625%26mt%3D1774244719%26fvip%3D5%26fexp%3D51565116%252C51565681%252C51791334%26c%3DANDROID_VR%26txp%3D5538434%26sparams%3Dexpire%252Cei%252Cip%252Cid%252Citag%252Csource%252Crequiressl%252Cxpc%252Cbui%252Cspc%252Cvprv%252Csvpuc%252Cxtags%252Cmime%252Crqh%252Ccnr%252Cratebypass%252Cdur%252Clmt%26sig%3DAHEqNM4wRQIhANEFiteSgPyBnbw9ycfXdvZbfMbx6UtHyckYByAURjNnAiBmJkeKFgFm42IzQCX4-oSe3CjVbXvF5kX6JcSlAsaLng%253D%253D%26lsparams%3Dcps%252Cmet%252Cmh%252Cmm%252Cmn%252Cms%252Cmv%252Cmvi%252Cpcm2cms%252Cpl%252Crms%252Cinitcwndbps%26lsig%3DAPaTxxMwRQIge2k4oWfhcd63k8hLuZA1x1Q9mpsgVXT3WEShXUHqkYACIQD2z_4v9DFeIv-cG3Nk6Q2prO4vrzGwInEW5ESAbIy6Sw%253D%253D&filename=Dj%20Snake%20-%20Middle%20(Sub%20Español%20-%20Lyrics)%20[OFFICIAL%20VIDEO].mp4 HTTP/1.1[0m" 404 -

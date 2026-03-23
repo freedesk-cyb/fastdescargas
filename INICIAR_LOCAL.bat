@@ -1,44 +1,27 @@
 @echo off
-title Fastvideo Local v5.0 (FINAL)
+title Fastvideo Desktop v7.0
 echo ==========================================
-echo    Fastvideo - Inicia el panel local
+echo    Fastvideo - Instalador Escritorio
 echo ==========================================
 echo.
 
-:: Detectar el comando de Python correcto
+:: Detectar Python
 set PYTHON_CMD=python
 python --version >nul 2>&1
 if %ERRORLEVEL% NEQ 0 (
     set PYTHON_CMD=py
     py --version >nul 2>&1
-    if %ERRORLEVEL% NEQ 0 (
-        set PYTHON_CMD=python3
-        python3 --version >nul 2>&1
-        if %ERRORLEVEL% NEQ 0 (
-            echo.
-            echo ERROR: No se detecto Python instalado.
-            echo Por favor, instala Python y marcan la opcion "Add to PATH".
-            pause
-            exit /b
-        )
-    )
 )
 
-echo [1/2] Verificando librerias...
+echo [1/3] Verificando componentes...
 %PYTHON_CMD% -m pip install -r requirements.txt
-if %ERRORLEVEL% NEQ 0 (
-    echo.
-    echo ERROR: No se pudieron instalar las librerias.
-    pause
-    exit /b
-)
 
 echo.
-echo [2/2] Lanzando servidor local...
+echo [2/3] Creando acceso directo en escritorio...
+cscript //nologo CREAR_ACCESO.vbs
+
+echo.
+echo [3/3] Iniciando aplicacion...
 echo.
 %PYTHON_CMD% app.py
-if %ERRORLEVEL% NEQ 0 (
-    echo.
-    echo ERROR al iniciar la aplicacion.
-    pause
-)
+pause
