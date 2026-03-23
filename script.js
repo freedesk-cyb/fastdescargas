@@ -196,12 +196,13 @@ document.addEventListener('DOMContentLoaded', () => {
             btnText.textContent = 'Preparando descarga...';
             status.textContent = 'Obteniendo enlace directo desde el navegador (sin bloqueos de servidor)...';
             
-            // Instancias de Cobalt con CORS habilitado (permiten ser llamadas desde otros sitios)
+            // Lista expandida de espejos (mirrors) de Cobalt v7 y v10
             const instances = [
-                "https://cobalt.hyrax.dedyn.io",
                 "https://cobalt.crushready.com",
+                "https://cobalt.hyrax.dedyn.io",
+                "https://cobalt-api.lre.pl",
                 "https://api.cobalt.tools",
-                "https://cobalt-api.lre.pl"
+                "https://cobalt.vxtwitter.com"
             ];
             
             const payload = {
@@ -210,17 +211,17 @@ document.addEventListener('DOMContentLoaded', () => {
             };
             
             let downloadUrl = null;
-            let lastErrorMessage = "No se pudo conectar con los servidores de descarga.";
+            let lastErrorMessage = "Todos los servidores de descarga están saturados.";
             
             for (const base of instances) {
-                // Intentamos con y sin /api/json para cada una
-                for (const path of ["/", "/api/json"]) {
+                // Probamos ambas rutas comunes por cada servidor
+                for (const path of ["/api/json", "/"]) {
                     const apiUrl = base + path;
                     try {
-                        console.log(`Intentando en: ${apiUrl}`);
+                        console.log(`Buscando video en: ${apiUrl}`);
                         const response = await fetch(apiUrl, {
                             method: 'POST',
-                            mode: 'cors', // Crucial para que el navegador no bloquee
+                            mode: 'cors',
                             headers: {
                                 'Accept': 'application/json',
                                 'Content-Type': 'application/json'
@@ -228,9 +229,9 @@ document.addEventListener('DOMContentLoaded', () => {
                             body: JSON.stringify(payload)
                         });
                         
-                        // Si da error de permisos/auth, pasamos a la siguiente
-                        if (response.status === 401 || response.status === 403 || response.status === 405) {
-                            console.warn(`Instancia ${apiUrl} bloqueada (Status ${response.status})`);
+                        // Si el servidor responde pero da error de autenticación (JWT), saltamos al siguiente espejo
+                        if (response.status === 401 || response.status === 403) {
+                            console.warn(`${apiUrl} requiere autenticación, saltando...`);
                             continue;
                         }
                         
@@ -239,12 +240,14 @@ document.addEventListener('DOMContentLoaded', () => {
                         if (data && data.url) {
                             downloadUrl = data.url;
                             break;
+                        } else if (data && data.status === 'error' && data.error && data.error.code === 'error.api.auth.jwt.missing') {
+                            console.warn(`${apiUrl} pide JWT, saltando...`);
+                            continue;
                         } else if (data && data.error) {
-                            console.warn(`Instancia ${apiUrl} error:`, data.error.code);
-                            lastErrorMessage = data.error.code;
+                            lastErrorMessage = data.error.code || "Error desconocido";
                         }
                     } catch (e) {
-                        console.error(`Error de conexión en ${apiUrl}:`, e.message);
+                        // Error de red o CORS, seguimos probando el siguiente espejo
                         continue;
                     }
                 }
