@@ -143,7 +143,9 @@ def is_authorized(request_obj, required_role=None):
     if required_role and user['role'] != required_role: return None
     return user
 
-# --- RUTAS DE AUTENTICACIÓN Y ADMINISTRACI@app.route('/api/login', methods=['POST'])
+# --- RUTAS DE AUTENTICACIÓN Y ADMINISTRACIÓN ---
+
+@app.route('/api/login', methods=['POST'])
 def login():
     data = request.json
     username = data.get('username')
