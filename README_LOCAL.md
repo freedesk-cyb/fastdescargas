@@ -6,25 +6,16 @@ Si tienes problemas con Vercel ("Servidores ocupados" o "IP_BLOCKED"), la soluci
 1.  **Python 3.x** instalado.
 2.  Las librerías necesarias (se instalan una sola vez).
 
-## Instrucciones Paso a Paso
+## Instrucciones Paso a Paso (Más Fácil)
 
-1.  **Instalar dependencias**:
-    Abre una terminal en la carpeta del proyecto y ejecuta:
-    ```bash
-    pip install -r requirements.txt
-    ```
+1.  **Doble clic en `INICIAR_LOCAL.bat`**:
+    Este archivo instalará todo lo necesario y abrirá el servidor automáticamente.
 
-2.  **Iniciar el programa**:
-    Ejecuta el archivo `app.py`:
-    ```bash
-    python app.py
-    ```
-
-3.  **Acceder al panel**:
+2.  **Acceder al panel**:
     Abre tu navegador y ve a:
-    **http://127.0.0.1:5000**
+    **http://127.0.0.1:8080**
 
-4.  **¡Listo!**:
+3.  **¡Listo!**:
     Ahora puedes descargar cualquier video. El sistema usará tu IP residencial y funcionará siempre.
 
 ---
