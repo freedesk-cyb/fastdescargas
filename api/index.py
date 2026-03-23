@@ -41,8 +41,9 @@ def get_db_connection():
             return conn
         else:
             import sqlite3
-            # Vercel no deja escribir en la raíz, pero sí en /tmp
-            db_path = '/tmp/database.db' if os.environ.get('VERCEL') else 'database.db'
+            # Vercel siempre expone VERCEL_URL. Forzamos /tmp si estamos en la nube.
+            is_vercel = os.environ.get('VERCEL') or os.environ.get('VERCEL_URL')
+            db_path = '/tmp/database.db' if is_vercel else 'database.db'
             conn = sqlite3.connect(db_path)
             conn.row_factory = sqlite3.Row
             return conn
@@ -63,6 +64,9 @@ def fetchrow(query, params=()):
             cols = [d[0] for d in cursor.description]
             return dict(zip(cols, row))
         return dict(row) if row else None
+    except Exception as e:
+        logging.error(f"Error en fetchrow: {e}")
+        return None
     finally:
         if conn: conn.close()
 
@@ -80,6 +84,9 @@ def fetchall(query, params=()):
             cols = [d[0] for d in cursor.description]
             return [dict(zip(cols, r)) for r in rows]
         return [dict(r) for r in rows]
+    except Exception as e:
+        logging.error(f"Error en fetchall: {e}")
+        return []
     finally:
         if conn: conn.close()
 
