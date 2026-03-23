@@ -196,12 +196,12 @@ document.addEventListener('DOMContentLoaded', () => {
             btnText.textContent = 'Preparando descarga...';
             status.textContent = 'Obteniendo enlace directo desde el navegador (sin bloqueos de servidor)...';
             
-            // Instancias públicas de Cobalt 100% abiertas (sin necesidad de login/JWT)
+            // Instancias de Cobalt con CORS habilitado (permiten ser llamadas desde otros sitios)
             const instances = [
-                "https://cobalt.hyrax.dedyn.io/",
-                "https://cobalt.crushready.com/",
-                "https://api.cobalt.tools/", // Intentamos la oficial pero con fallback
-                "https://cobalt-api.lre.pl/"
+                "https://cobalt.hyrax.dedyn.io",
+                "https://cobalt.crushready.com",
+                "https://api.cobalt.tools",
+                "https://cobalt-api.lre.pl"
             ];
             
             const payload = {
@@ -212,38 +212,43 @@ document.addEventListener('DOMContentLoaded', () => {
             let downloadUrl = null;
             let lastErrorMessage = "No se pudo conectar con los servidores de descarga.";
             
-            for (const apiUrl of instances) {
-                try {
-                    console.log(`Intentando en: ${apiUrl}`);
-                    const response = await fetch(apiUrl, {
-                        method: 'POST',
-                        headers: {
-                            'Accept': 'application/json',
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify(payload)
-                    });
-                    
-                    if (!response.ok) {
-                        console.warn(`Instancia ${apiUrl} respondió con status ${response.status}`);
+            for (const base of instances) {
+                // Intentamos con y sin /api/json para cada una
+                for (const path of ["/", "/api/json"]) {
+                    const apiUrl = base + path;
+                    try {
+                        console.log(`Intentando en: ${apiUrl}`);
+                        const response = await fetch(apiUrl, {
+                            method: 'POST',
+                            mode: 'cors', // Crucial para que el navegador no bloquee
+                            headers: {
+                                'Accept': 'application/json',
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify(payload)
+                        });
+                        
+                        // Si da error de permisos/auth, pasamos a la siguiente
+                        if (response.status === 401 || response.status === 403 || response.status === 405) {
+                            console.warn(`Instancia ${apiUrl} bloqueada (Status ${response.status})`);
+                            continue;
+                        }
+                        
+                        const data = await response.json();
+                        
+                        if (data && data.url) {
+                            downloadUrl = data.url;
+                            break;
+                        } else if (data && data.error) {
+                            console.warn(`Instancia ${apiUrl} error:`, data.error.code);
+                            lastErrorMessage = data.error.code;
+                        }
+                    } catch (e) {
+                        console.error(`Error de conexión en ${apiUrl}:`, e.message);
                         continue;
                     }
-                    
-                    const data = await response.json();
-                    
-                    if (data && data.url) {
-                        downloadUrl = data.url;
-                        break;
-                    } else {
-                        console.warn(`Instancia ${apiUrl} no devolvió URL:`, data);
-                        if (data?.error?.code) lastErrorMessage = data.error.code;
-                        continue;
-                    }
-                } catch (e) {
-                    console.error(`Error de red en ${apiUrl}:`, e);
-                    lastErrorMessage = "Error de conexión local o bloqueo de navegador.";
-                    continue;
                 }
+                if (downloadUrl) break;
             }
             
             if (downloadUrl) {
