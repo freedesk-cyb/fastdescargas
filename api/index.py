@@ -13,58 +13,81 @@ CORS(app)
 
 logging.basicConfig(level=logging.INFO)
 
-# --- CONFIGURACIÓN BASE DE DATOS (SQLite local / PostgreSQL en producción) ---
-DATABASE_URL = os.environ.get('DATABASE_URL')
+# --- CONFIGURACIÓN BASE DE DATOS (Portable para PostgreSQL y SQLite) ---
+def get_db_connection():
+    db_url = os.environ.get('DATABASE_URL')
+    try:
+        if db_url:
+            import pg8000.dbapi
+            import urllib.parse as uparse
+            import ssl
+            
+            uparse.uses_netloc.append("postgres")
+            url = uparse.urlparse(db_url)
+            
+            # Forzar SSL para Render/Neon/Heroku
+            ssl_context = ssl.create_default_context()
+            ssl_context.check_hostname = False
+            ssl_context.verify_mode = ssl.CERT_NONE
 
-if DATABASE_URL:
-    import pg8000.native
-    import pg8000.dbapi
-    from urllib.parse import urlparse
-    PH = '%s'  # Placeholder para PostgreSQL
+            conn = pg8000.dbapi.connect(
+                user=url.username,
+                password=url.password,
+                host=url.hostname,
+                port=url.port,
+                database=url.path.lstrip('/'),
+                ssl_context=ssl_context
+            )
+            return conn
+        else:
+            import sqlite3
+            # Vercel no deja escribir en la raíz, pero sí en /tmp
+            db_path = '/tmp/database.db' if os.environ.get('VERCEL') else 'database.db'
+            conn = sqlite3.connect(db_path)
+            conn.row_factory = sqlite3.Row
+            return conn
+    except Exception as e:
+        logging.error(f"Error en get_db_connection: {e}")
+        raise e
 
-    _parsed = urlparse(DATABASE_URL)
-    _PG = dict(
-        host=_parsed.hostname,
-        port=_parsed.port or 5432,
-        database=_parsed.path.lstrip('/'),
-        user=_parsed.username,
-        password=_parsed.password,
-        ssl_context=True
-    )
-
-    def get_db_connection():
-        conn = pg8000.dbapi.connect(**_PG)
-        conn.autocommit = False
-        return conn
-    def fetchrow(cursor):
+def fetchrow(query, params=()):
+    params = params if isinstance(params, (list, tuple)) else (params,)
+    ph = '%s' if os.environ.get('DATABASE_URL') else '?'
+    conn = None
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute(query.replace('?', ph), params)
         row = cursor.fetchone()
-        if row is None: return None
-        cols = [d[0] for d in cursor.description]
-        return dict(zip(cols, row))
-    def fetchall(cursor):
-        rows = cursor.fetchall()
-        cols = [d[0] for d in cursor.description]
-        return [dict(zip(cols, r)) for r in rows]
-    logging.info("🐘 Usando PostgreSQL/pg8000 (producción)")
-else:
-    import sqlite3
-    PH = '?'  # Placeholder para SQLite
-    DB_PATH = 'database.db'
-    def get_db_connection():
-        conn = sqlite3.connect(DB_PATH)
-        conn.row_factory = sqlite3.Row
-        return conn
-    def fetchrow(cursor):
-        row = cursor.fetchone()
+        if row and not hasattr(row, 'keys'): # Si es pg8000 (tupla)
+            cols = [d[0] for d in cursor.description]
+            return dict(zip(cols, row))
         return dict(row) if row else None
-    def fetchall(cursor):
-        return [dict(r) for r in cursor.fetchall()]
-    logging.info("🗄️ Usando SQLite (local)")
+    finally:
+        if conn: conn.close()
+
+def fetchall(query, params=()):
+    params = params if isinstance(params, (list, tuple)) else (params,)
+    ph = '%s' if os.environ.get('DATABASE_URL') else '?'
+    conn = None
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute(query.replace('?', ph), params)
+        rows = cursor.fetchall()
+        # Convertir a lista de dicts
+        if rows and len(rows) > 0 and not hasattr(rows[0], 'keys'):
+            cols = [d[0] for d in cursor.description]
+            return [dict(zip(cols, r)) for r in rows]
+        return [dict(r) for r in rows]
+    finally:
+        if conn: conn.close()
 
 def init_db():
+    ph = '%s' if os.environ.get('DATABASE_URL') else '?'
     conn = get_db_connection()
     c = conn.cursor()
-    if DATABASE_URL:
+    if os.environ.get('DATABASE_URL'):
         c.execute('''
             CREATE TABLE IF NOT EXISTS users (
                 id SERIAL PRIMARY KEY,
