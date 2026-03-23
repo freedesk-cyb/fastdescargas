@@ -305,40 +305,40 @@ def get_direct_url():
     if not video_id:
         return jsonify({"error": "Falta ID de video"}), 400
         
+    video_url = f"https://www.youtube.com/watch?v={video_id}"
+    
+    # 1. Intentamos con Onedownloader (Muy estable para cloud IPs)
     try:
         import urllib.request as ureq
-        # Usamos SaveTube API (muy estable para backends)
-        api_url = f"https://api.savetube.me/info/{video_id}"
+        # Endpoint de info de Onedownloader (Pública)
+        api_url = f"https://api.onedownloader.com/get-info?url={video_url}"
         req = ureq.Request(api_url, headers={
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
         })
-        
-        with ureq.urlopen(req, timeout=15) as resp:
+        with ureq.urlopen(req, timeout=10) as resp:
             data = json.loads(resp.read().decode('utf-8'))
-            
-        if data.get('status') == True and data.get('data'):
-            # El campo puede llamarse 'download_url' o estar dentro de una lista de formatos
-            # SaveTube usualmente retorna un objeto con info y formatos
-            res_data = data['data']
-            video_formats = res_data.get('video_formats', [])
-            
-            # Buscamos el mejor formato MP4 (720p o similar)
-            best_url = None
-            for fmt in video_formats:
-                if '.mp4' in fmt.get('url', '') or fmt.get('quality') == '720':
-                    best_url = fmt['url']
-                    break
-            
-            if not best_url and video_formats:
-                best_url = video_formats[0]['url']
-                
-            if best_url:
-                return jsonify({"url": best_url})
-                
-        return jsonify({"error": "No se encontró enlace de descarga para este video."}), 500
+            if data.get('status') == 'success' and data.get('formats'):
+                # Buscamos el primer MP4 con audio
+                for fmt in data['formats']:
+                    if fmt.get('extension') == 'mp4' and fmt.get('url'):
+                        return jsonify({"url": fmt['url']})
     except Exception as e:
-        logging.error(f"Error en Savetube API: {e}")
-        return jsonify({"error": "Servidor de descarga ocupado, intenta de nuevo."}), 500
+        logging.error(f"Onedownloader falló: {e}")
+
+    # 2. Fallback a Savetube
+    try:
+        api_url = f"https://api.savetube.me/info/{video_id}"
+        req = ureq.Request(api_url, headers={"User-Agent": "Mozilla/5.0 Chrome/120.0.0.0"})
+        with ureq.urlopen(req, timeout=10) as resp:
+            data = json.loads(resp.read().decode('utf-8'))
+            if data.get('status') == True and data.get('data'):
+                formats = data['data'].get('video_formats', [])
+                if formats:
+                    return jsonify({"url": formats[0]['url']})
+    except Exception as e:
+        logging.error(f"Savetube falló: {e}")
+        
+    return jsonify({"error": "Servidores saturados temporalmente. Intenta de nuevo."}), 500
 
 if __name__ == '__main__':
     app.run(port=5000, threaded=True)
