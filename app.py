@@ -178,7 +178,29 @@ def get_direct_url():
     except Exception as e: return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':
+    import webbrowser
+    import threading
+
+    def open_browser():
+        import time
+        time.sleep(2) # Esperar a que el servidor arranque
+        print("🌍 Abriendo el panel en tu navegador...")
+        webbrowser.open("http://127.0.0.1:5000")
+
     with app.app_context():
         init_db()
-    print("🚀 Fastvideo LOCAL v4.0 iniciado en http://127.0.0.1:8080")
-    app.run(host='0.0.0.0', port=8080, debug=True)
+    
+    # Iniciar el hilo para abrir el navegador
+    threading.Thread(target=open_browser).start()
+    
+    print("\n" + "="*40)
+    print("🚀 Fastvideo LOCAL v4.1")
+    print("Panel: http://127.0.0.1:5000")
+    print("="*40 + "\n")
+    
+    # Intentar usar el puerto 5000 (el que el usuario prefiere)
+    try:
+        app.run(host='0.0.0.0', port=5000, debug=False)
+    except Exception as e:
+        print(f"Puerto 5000 ocupado, intentando 8080... ({e})")
+        app.run(host='0.0.0.0', port=8080, debug=False)
