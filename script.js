@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
-    console.log("Fastvideo v4.0 LOCAL Loaded");
+    console.log("Fastvideo v5.0 FINAL (Solo LOCAL) Loaded");
     // Auth Variables
     const API_URL = ''; // Rutas relativas para un solo servidor unificado
     let currentUser = {
