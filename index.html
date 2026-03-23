@@ -3,186 +3,57 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Descarga videos de YouTube gratis y rápido con Fastvideo. Copia y pega el enlace para bajar videos en MP4 o MP3.">
-    <title>Fastvideo - Descargador de YouTube Gratis</title>
-    <link rel="stylesheet" href="style.css">
-    <!-- Iconos Lucide (via CDN for simplicity) -->
+    <title>Fastvideo - Descargador Local</title>
     <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #ff4757;
+            --background: #0f0f0f;
+            --card: #1a1a1a;
+            --text: #ffffff;
+            --text-muted: #9ca3af;
+        }
+        * { margin:0; padding:0; box-sizing:border-box; font-family: 'Outfit', sans-serif; }
+        body { background: var(--background); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; }
+        .container { width: 100%; max-width: 600px; text-align: center; }
+        .header { margin-bottom: 40px; }
+        .header h1 { font-size: 2.5rem; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 10px; }
+        .header h1 i { color: var(--primary); }
+        .search-box { background: var(--card); padding: 10px; border-radius: 20px; display: flex; gap: 10px; border: 1px solid rgba(255,255,255,0.1); margin-bottom: 30px; }
+        input { flex: 1; background: transparent; border: none; color: white; padding: 10px 20px; outline: none; font-size: 1rem; }
+        button { background: var(--primary); border: none; color: white; padding: 12px 25px; border-radius: 15px; cursor: pointer; font-weight: 600; display: flex; align-items: center; gap: 8px; transition: 0.3s; }
+        button:hover { transform: scale(1.05); filter: brightness(1.1); }
+        #result { background: var(--card); padding: 20px; border-radius: 20px; margin-top: 20px; display: none; }
+        .thumb { width:100%; border-radius:15px; margin-bottom:15px; }
+        #status { margin-top: 15px; font-size: 0.9rem; color: var(--text-muted); }
+    </style>
 </head>
 <body>
-    <div class="background-effects">
-        <div class="glow glow-1"></div>
-        <div class="glow glow-2"></div>
-    </div>
 
-    <!-- NAV BAR -->
-    <nav id="navbar" style="display: none; padding: 15px 5%; background: rgba(10, 10, 10, 0.8); backdrop-filter: blur(12px); border-bottom: 1px solid rgba(255, 255, 255, 0.05); position: fixed; top: 0; width: 100%; z-index: 100; box-sizing: border-box; justify-content: space-between; align-items: center;">
-        <div style="font-weight: 800; color: white; display: flex; align-items: center; gap: 8px; font-size: 1.2rem;">
-            <i data-lucide="zap" style="color: var(--primary);"></i> Fastvideo <span style="font-size: 0.7rem; background: var(--primary); padding: 2px 6px; border-radius: 4px; margin-left: 5px;">PRO v4.0 (LOCAL)</span>
+    <div class="container">
+        <div class="header">
+            <h1 id="main-title"><i data-lucide="zap"></i> Fastvideo Local</h1>
+            <p style="color:var(--text-muted); margin-top:10px;">Pega el link de YouTube y descarga al instante</p>
         </div>
-        <div style="display: flex; gap: 15px; align-items: center;">
-            <span id="user-greeting" style="color: var(--text-muted); font-size: 0.9rem; display: none;"></span>
-            <button id="btn-admin-nav" class="btn-primary" style="display: none; padding: 6px 15px; font-size: 0.85rem; background: rgba(255, 255, 255, 0.1); color: white; border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; cursor: pointer; transition: all 0.2s;">Panel Admin</button>
-            <button id="btn-app-nav" class="btn-primary" style="display: none; padding: 6px 15px; font-size: 0.85rem; background: rgba(255, 255, 255, 0.1); color: white; border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; cursor: pointer; transition: all 0.2s;">Descargador</button>
-            <button id="btn-logout" style="padding: 6px 15px; font-size: 0.85rem; background: transparent; color: #ff6b6b; border: 1px solid rgba(255, 107, 107, 0.3); border-radius: 8px; cursor: pointer; transition: all 0.2s;">Salir</button>
-        </div>
-    </nav>
 
-    <!-- LOGIN VIEW -->
-    <div id="login-view" class="login-split">
-        <div class="login-image-side">
-            <div class="login-image-overlay"></div>
-            <div class="login-image-text">
-                <h1>Descarga sin<br>Límites.</h1>
-                <p>Accede a la plataforma de descargas nativas premium Fastvideo.</p>
-            </div>
+        <div class="search-box">
+            <input type="text" id="video-url" placeholder="Pega el enlace de YouTube aquí...">
+            <button id="btn-fetch"><i data-lucide="search"></i> Buscar</button>
+        </div>
+
+        <div id="result">
+            <img id="video-thumb" src="" class="thumb">
+            <h3 id="video-title" style="margin-bottom:20px;">Título del video</h3>
+            <button id="btn-download" style="width:100%; justify-content:center; padding:15px; font-size:1.1rem;">
+                <i data-lucide="download"></i> Descargar MP4
+            </button>
         </div>
         
-        <div class="login-form-side">
-            <div class="glass-card" style="width: 100%; max-width: 420px; padding: 3rem; border-radius: 24px; box-shadow: 0 20px 40px rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.05);">
-                <div style="text-align: center; margin-bottom: 2.5rem;">
-                    <div style="background: linear-gradient(135deg, var(--primary), #8b5cf6); width: 64px; height: 64px; border-radius: 16px; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.5rem; box-shadow: 0 10px 20px rgba(99,102,241,0.4);">
-                        <i data-lucide="zap" style="width: 32px; height: 32px; color: white;"></i>
-                    </div>
-                    <h2 style="color: white; font-size: 2rem; margin: 0; font-weight: 700; letter-spacing: -0.5px;">Acceso Privado</h2>
-                    <p style="color: var(--text-muted); font-size: 0.95rem; margin-top: 8px;">Sistema de Gestión Fastvideo</p>
-                </div>
-                <div style="position: relative; margin-bottom: 1.25rem;">
-                    <i data-lucide="user" style="position: absolute; left: 16px; top: 50%; transform: translateY(-50%); width: 20px; color: var(--text-muted); height: 100%;"></i>
-                    <input type="text" id="login-username" placeholder="Nombre de Usuario" style="width: 100%; box-sizing: border-box; padding: 1rem 1rem 1rem 48px; border-radius: 12px; font-size: 1rem; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); color: white; outline: none; transition: all 0.3s;">
-                </div>
-                <div style="position: relative; margin-bottom: 2rem;">
-                    <i data-lucide="lock" style="position: absolute; left: 16px; top: 50%; transform: translateY(-50%); width: 20px; color: var(--text-muted); height: 100%;"></i>
-                    <input type="password" id="login-password" placeholder="Contraseña" style="width: 100%; box-sizing: border-box; padding: 1rem 1rem 1rem 48px; border-radius: 12px; font-size: 1rem; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); color: white; outline: none; transition: all 0.3s;" autocomplete="current-password">
-                </div>
-                <button id="btn-login" class="btn-primary" style="width: 100%; justify-content: center; border-radius: 12px; font-size: 1.1rem; padding: 1.1rem; box-shadow: 0 8px 16px rgba(99,102,241,0.25);">
-                    <i data-lucide="log-in" style="width: 18px; margin-right: 8px;"></i> Ingresar al Sistema
-                </button>
-                <div id="login-error" style="color: #ff6b6b; font-size: 0.9rem; text-align: center; margin-top: 1.2rem; display: none; background: rgba(255, 107, 107, 0.1); padding: 12px; border-radius: 10px; border: 1px solid rgba(255, 107, 107, 0.2);"></div>
-            </div>
-        </div>
+        <div id="status"></div>
     </div>
-
-    <!-- ADMIN VIEW -->
-    <div id="admin-view" style="display: none; padding: 100px 5% 50px; box-sizing: border-box; min-height: 100vh;">
-        <div style="max-width: 1000px; margin: 0 auto;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
-                <h1 style="color: white; font-size: 2rem; margin: 0;">Gestión de Usuarios</h1>
-                <button id="btn-show-add-user" class="btn-primary" style="border-radius: 8px; font-size: 0.9rem; padding: 0.6rem 1.2rem;">
-                    <i data-lucide="user-plus" style="width: 16px; margin-right: 6px;"></i> Nuevo Usuario
-                </button>
-            </div>
-            
-            <div id="add-user-form" class="glass-card" style="display: none; margin-bottom: 2rem; padding: 1.5rem; border-radius: 16px;">
-                <h3 style="color: white; margin-top: 0; margin-bottom: 1rem;">Agregar / Editar Usuario</h3>
-                <input type="hidden" id="edit-user-id" value="">
-                <div style="display: flex; gap: 15px; flex-wrap: wrap;">
-                    <input type="text" id="new-username" class="url-input" placeholder="Nombre de Usuario" style="flex: 1; min-width: 200px; border-radius: 8px; font-size: 0.95rem;">
-                    <input type="password" id="new-password" class="url-input" placeholder="Contraseña (deja vacío si editas y no quieres cambiarla)" style="flex: 1; min-width: 200px; border-radius: 8px; font-size: 0.95rem;">
-                    <select id="new-role" class="url-input" style="flex: 0.5; min-width: 120px; border-radius: 8px; font-size: 0.95rem; appearance: auto;">
-                        <option value="user">Usuario</option>
-                        <option value="admin">Administrador</option>
-                    </select>
-                    <button id="btn-save-user" class="btn-primary" style="border-radius: 8px;"><i data-lucide="save" style="width:16px;"></i></button>
-                    <button id="btn-cancel-user" style="padding: 10px; background: rgba(255,255,255,0.1); border: none; border-radius: 8px; color: white; cursor: pointer;"><i data-lucide="x" style="width:16px;"></i></button>
-                </div>
-            </div>
-
-            <div class="glass-card" style="padding: 0; overflow: hidden; border-radius: 16px;">
-                <table style="width: 100%; border-collapse: collapse; color: white; text-align: left;">
-                    <thead>
-                        <tr style="background: rgba(255, 255, 255, 0.05); border-bottom: 1px solid rgba(255, 255, 255, 0.1);">
-                            <th style="padding: 1rem 1.5rem; font-weight: 600; font-size: 0.95rem; color: var(--text-muted);">ID</th>
-                            <th style="padding: 1rem 1.5rem; font-weight: 600; font-size: 0.95rem; color: var(--text-muted);">Usuario</th>
-                            <th style="padding: 1rem 1.5rem; font-weight: 600; font-size: 0.95rem; color: var(--text-muted);">Rol</th>
-                            <th style="padding: 1rem 1.5rem; font-weight: 600; font-size: 0.95rem; color: var(--text-muted); text-align: right;">Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody id="users-table-body">
-                        <!-- Users will be injected here -->
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-
-    <!-- MAIN APP VIEW -->
-    <div id="app-view" style="display: none; padding-top: 60px;">
-        <div class="container">
-            <header>
-            <div class="logo">
-                <i data-lucide="zap"></i>
-                Fast<span>video</span>
-            </div>
-            <nav>
-                <div class="btn-download" style="border: none; background: transparent; font-weight: 500;">
-                    Español <i data-lucide="chevron-down" style="width: 16px; display: inline-block;"></i>
-                </div>
-            </nav>
-        </header>
-
-        <main class="hero">
-            <h1>Descarga Videos de YouTube <span>Gratis</span></h1>
-            <p>Convierte y descarga tus videos favoritos de YouTube en alta definición de forma rápida, segura y sin registros.</p>
-
-            <div class="input-wrapper glass">
-                <input type="text" id="video-url" placeholder="Pega el link de YouTube aquí..." autocomplete="off">
-                <button id="btn-fetch" class="btn-primary">
-                    <span id="btn-text">Descargar</span>
-                    <div class="loader" id="loader"></div>
-                    <i data-lucide="download" id="download-icon"></i>
-                </button>
-            </div>
-
-            <div id="result-area">
-                <div class="result-card glass">
-                    <div class="thumbnail-placeholder">
-                        <img id="video-thumb" src="" alt="Thumbnail" style="display: none;">
-                        <i data-lucide="video" id="video-placeholder-icon"></i>
-                    </div>
-                    <div class="video-info">
-                        <h2 id="video-title">Título del Video</h2>
-                        <div class="download-options">
-                            <button class="btn-download"><i data-lucide="file-video" style="width:14px"></i> MP4 (720p)</button>
-                            <button class="btn-download"><i data-lucide="file-video" style="width:14px"></i> MP4 (1080p)</button>
-                            <button class="btn-download"><i data-lucide="music" style="width:14px"></i> MP3 (320kbps)</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <section class="features">
-                <div class="feature-card glass">
-                    <div class="icon"><i data-lucide="zap"></i></div>
-                    <h3>Súper Rápido</h3>
-                    <p>Nuestro potente motor procesa tus enlaces en segundos para que no pierdas tiempo.</p>
-                </div>
-                <div class="feature-card glass">
-                    <div class="icon"><i data-lucide="shield-check"></i></div>
-                    <h3>Seguro</h3>
-                    <p>Descarga sin virus ni software malicioso. Tu privacidad es nuestra prioridad.</p>
-                </div>
-                <div class="feature-card glass">
-                    <div class="icon"><i data-lucide="infinity"></i></div>
-                    <h3>Ilimitado</h3>
-                    <p>Baja todos los videos que quieras sin límites diarios ni costos ocultos.</p>
-                </div>
-            </section>
-        </main>
-
-        <footer>
-            <p>&copy; 2024 Fastvideo. Hecho con amor para amantes del video.</p>
-        </footer>
-    </div>
-    </div>
-
-    <!-- Toast Notification -->
-    <div id="toast" class="glass">Error message here</div>
 
     <script src="script.js"></script>
-    <script>
-        // Initialize Lucide icons
-        lucide.createIcons();
-    </script>
+    <script>lucide.createIcons();</script>
 </body>
 </html>
