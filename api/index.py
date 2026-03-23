@@ -143,6 +143,22 @@ def is_authorized(request_obj, required_role=None):
     if required_role and user['role'] != required_role: return None
     return user
 
+# --- SERVIDOR DE FRONTEND (Rutas Estáticas) ---
+from flask import send_from_directory
+
+# Vercel ejecuta esto desde la raíz usualmente, pero por si acaso, definimos la ruta del root
+BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+
+@app.route('/')
+def serve_index():
+    return send_from_directory(BASE_DIR, 'index.html')
+
+@app.route('/<path:path>')
+def serve_static(path):
+    if os.path.exists(os.path.join(BASE_DIR, path)):
+        return send_from_directory(BASE_DIR, path)
+    return send_from_directory(BASE_DIR, 'index.html')
+
 # --- RUTAS DE AUTENTICACIÓN Y ADMINISTRACIÓN ---
 
 @app.route('/api/login', methods=['POST'])
