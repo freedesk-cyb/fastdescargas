@@ -224,17 +224,26 @@ document.addEventListener('DOMContentLoaded', () => {
                 status.textContent = 'Backend ocupado, intentando servidores de emergencia...';
                 for (const base of instances) {
                     try {
+                        console.log(`Intentando fallback: ${base}`);
                         const response = await fetch(base + "/api/json", {
                             method: 'POST', mode: 'cors',
                             headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ url: originalUrl, videoQuality: "720" })
+                            body: JSON.stringify({ 
+                                url: originalUrl, 
+                                videoQuality: "720",
+                                downloadMode: "attachment" // Forzar descarga
+                            })
                         });
                         const data = await response.json();
                         if (data && data.url) { 
                             downloadUrl = data.url; 
+                            console.log(`Éxito con fallback: ${base}`);
                             break; 
                         }
-                    } catch (e) { continue; }
+                    } catch (e) { 
+                        console.error(`Fallback falló (${base}):`, e);
+                        continue; 
+                    }
                 }
             }
             

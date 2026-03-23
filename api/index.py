@@ -361,6 +361,23 @@ def get_direct_url():
             logging.error(f"yt-dlp error: {e}")
 
         # 2. Servidores Alternativos (Fallback)
+        
+        # Intento con Cobalt API (Servidor)
+        try:
+            cobalt_api = "https://api.cobalt.tools/api/json"
+            payload = json.dumps({"url": video_url, "videoQuality": "720"}).encode('utf-8')
+            req = ureq.Request(cobalt_api, data=payload, headers={
+                "Accept": "application/json",
+                "Content-Type": "application/json",
+                "User-Agent": "Mozilla/5.0"
+            })
+            with ureq.urlopen(req, timeout=10) as resp:
+                data = json.loads(resp.read().decode('utf-8'))
+                if data.get('url'):
+                    return jsonify({"url": data['url']})
+        except Exception as e:
+            logging.error(f"Cobalt backend error: {e}")
+
         # Onedownloader
         try:
             api_url = f"https://api.onedownloader.com/get-info?url={video_url}"
@@ -382,7 +399,7 @@ def get_direct_url():
                 if data.get('data'): return jsonify({"url": data['data']['video_formats'][0]['url']})
         except: pass
         
-        return jsonify({"error": "Ocupado"}), 500
+        return jsonify({"error": "Ocupado: No se pudo extraer el enlace de descarga"}), 500
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
