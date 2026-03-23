@@ -8,10 +8,11 @@ import yt_dlp
 import urllib.request as ureq
 import urllib.parse as uparse
 from werkzeug.security import generate_password_hash, check_password_hash
-from flask import Flask, request, Response, jsonify
+from flask import Flask, request, Response, jsonify, send_from_directory
 from flask_cors import CORS
 
-app = Flask(__name__)
+# Inicializar Flask con soporte para archivos estáticos (para uso local)
+app = Flask(__name__, static_folder='../', static_url_path='')
 CORS(app)
 
 logging.basicConfig(level=logging.INFO)
@@ -149,6 +150,20 @@ def get_user_from_token(token):
     if not token: return None
     return fetchrow('SELECT * FROM users WHERE token = ?', (token,))
 
+# --- RUTAS DE NAVEGACIÓN (PARA USO LOCAL) ---
+@app.route('/')
+def serve_index():
+    return send_from_directory(app.static_folder, 'index.html')
+
+@app.route('/<path:path>')
+def serve_static(path):
+    # Si el archivo existe en la raíz, lo servimos (script.js, style.css, etc.)
+    full_path = os.path.join(app.static_folder, path)
+    if os.path.exists(full_path) and os.path.isfile(full_path):
+        return send_from_directory(app.static_folder, path)
+    return jsonify({"error": "No encontrado"}), 404
+
+# --- RUTAS DE API ---
 @app.route('/api/health')
 def health_check():
     diagnostics = {}
