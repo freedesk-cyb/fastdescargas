@@ -196,25 +196,25 @@ document.addEventListener('DOMContentLoaded', () => {
             btnText.textContent = 'Preparando descarga...';
             status.textContent = 'Obteniendo enlace directo desde el navegador (sin bloqueos de servidor)...';
             
-            // Instancias públicas de Cobalt para descarga directa desde tu navegador
+            // Instancias públicas de Cobalt 100% abiertas (sin necesidad de login/JWT)
             const instances = [
-                "https://api.cobalt.tools/",
+                "https://cobalt.hyrax.dedyn.io/",
                 "https://cobalt.crushready.com/",
+                "https://api.cobalt.tools/", // Intentamos la oficial pero con fallback
                 "https://cobalt-api.lre.pl/"
             ];
             
             const payload = {
                 url: originalUrl,
-                videoQuality: "720",
-                filenameStyle: "classic"
+                videoQuality: "720"
             };
             
             let downloadUrl = null;
-            let lastError = "No se pudo conectar con ningún servidor de descarga.";
+            let lastErrorMessage = "No se pudo conectar con los servidores de descarga.";
             
             for (const apiUrl of instances) {
                 try {
-                    console.log(`Intentando descarga desde: ${apiUrl}`);
+                    console.log(`Intentando en: ${apiUrl}`);
                     const response = await fetch(apiUrl, {
                         method: 'POST',
                         headers: {
@@ -224,16 +224,24 @@ document.addEventListener('DOMContentLoaded', () => {
                         body: JSON.stringify(payload)
                     });
                     
+                    if (!response.ok) {
+                        console.warn(`Instancia ${apiUrl} respondió con status ${response.status}`);
+                        continue;
+                    }
+                    
                     const data = await response.json();
                     
                     if (data && data.url) {
                         downloadUrl = data.url;
                         break;
-                    } else if (data && data.error) {
-                        lastError = data.error.code || "Error en el servidor de descarga.";
+                    } else {
+                        console.warn(`Instancia ${apiUrl} no devolvió URL:`, data);
+                        if (data?.error?.code) lastErrorMessage = data.error.code;
+                        continue;
                     }
                 } catch (e) {
-                    console.warn(`Fallo en instancia ${apiUrl}:`, e);
+                    console.error(`Error de red en ${apiUrl}:`, e);
+                    lastErrorMessage = "Error de conexión local o bloqueo de navegador.";
                     continue;
                 }
             }
@@ -249,7 +257,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 a.click();
                 document.body.removeChild(a);
             } else {
-                status.textContent = `❌ ${lastError}. Por favor, prueba otro video o inténtalo más tarde.`;
+                status.textContent = `❌ ${lastErrorMessage}. Por favor, prueba otro video o inténtalo más tarde.`;
             }
             
             setTimeout(() => {
