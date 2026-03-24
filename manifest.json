@@ -1,0 +1,19 @@
+{
+  "name": "Fastvideo Downloader",
+  "short_name": "Fastvideo",
+  "name_es": "Descargador de Video",
+  "description": "Descarga videos de YouTube de forma rápida y sencilla.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0a0b",
+  "theme_color": "#ff3e55",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
