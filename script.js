@@ -115,12 +115,18 @@ async function downloadInline(url, filename) {
 
     } catch (e) {
         console.error("Error downloadInline:", e);
-        progressText.textContent = "❌ Error en descarga inline.";
-        // Fallback simple a link directo si falla el proxy
+        progressText.innerHTML = `❌ Error: ${e.message}<br><small>Reintentando por vía directa...</small>`;
+        
+        // Fallback robusto al link directo si el proxy falla o da timeout
         const a = document.createElement('a');
         a.href = url;
         a.download = filename;
+        a.target = "_blank"; // Abrir en pestaña nueva solo como último recurso
+        document.body.appendChild(a);
         a.click();
+        document.body.removeChild(a);
+        
+        setTimeout(() => { progressContainer.style.display = 'none'; }, 5000);
     }
 }
 

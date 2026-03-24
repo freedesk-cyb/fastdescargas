@@ -161,3 +161,26 @@
 2026-03-23 01:04:44,766 - INFO - \u26a0\ufe0f No se pudo iniciar el modo app, usando navegador...
 2026-03-23 01:04:45,144 - INFO - 127.0.0.1 - - [23/Mar/2026 01:04:45] "[36mGET / HTTP/1.1[0m" 304 -
 2026-03-23 01:04:45,287 - INFO - 127.0.0.1 - - [23/Mar/2026 01:04:45] "[36mGET /script.js HTTP/1.1[0m" 304 -
+2026-03-23 21:24:11,795 - INFO - 127.0.0.1 - - [23/Mar/2026 21:24:11] "GET / HTTP/1.1" 200 -
+2026-03-23 21:24:11,877 - INFO - 127.0.0.1 - - [23/Mar/2026 21:24:11] "GET /script.js HTTP/1.1" 200 -
+2026-03-23 21:24:13,270 - INFO - 127.0.0.1 - - [23/Mar/2026 21:24:13] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+2026-03-23 21:25:29,781 - INFO - \U0001f4e5 Solicitud metadata para: https://www.youtube.com/watch?v=Use44Y1XuAU&list=RDUse44Y1XuAU&start_radio=1
+2026-03-23 21:25:29,923 - INFO - \U0001f50d Extrayendo info de YouTube...
+2026-03-23 21:25:41,402 - INFO - \u2705 Exito: The Weeknd - Blinding Lights | Sub Español
+2026-03-23 21:25:41,403 - INFO - 127.0.0.1 - - [23/Mar/2026 21:25:41] "GET /api/get-metadata?url=https://www.youtube.com/watch?v%3DUse44Y1XuAU%26list%3DRDUse44Y1XuAU%26start_radio%3D1 HTTP/1.1" 200 -
+2026-03-23 21:25:41,411 - INFO - \U0001f4e5 Solicitud descarga para ID: Use44Y1XuAU
+2026-03-23 21:25:41,552 - INFO - \U0001f517 Generando link directo...
+2026-03-23 21:25:43,942 - INFO - 127.0.0.1 - - [23/Mar/2026 21:25:43] "GET /api/get-direct-url?video_id=Use44Y1XuAU HTTP/1.1" 200 -
+2026-03-23 21:25:44,881 - INFO - 127.0.0.1 - - [23/Mar/2026 21:25:44] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+2026-03-23 21:26:11,912 - INFO - 127.0.0.1 - - [23/Mar/2026 21:26:11] "[33mGET /api/proxy-download?url=https://rr2---sn-ja5gv2x-aphel.googlevideo.com/videoplayback?expire%3D1774340743%26ei%3DJ_bBaaCECP63nOAPtriigAw%26ip%3D179.6.169.46%26id%3Do-AHekBF6JARtYMnynnYlGIMfKOlKLt-O8vlC9kx-Shj4_%26itag%3D18%26source%3Dyoutube%26requiressl%3Dyes%26xpc%3DEgVo2aDSNQ%253D%253D%26cps%3D492%26met%3D1774319143%252C%26mh%3DI1%26mm%3D31%252C29%26mn%3Dsn-ja5gv2x-aphel%252Csn-hp57knk7%26ms%3Dau%252Crdu%26mv%3Dm%26mvi%3D2%26pl%3D23%26rms%3Dau%252Cau%26initcwndbps%3D1430000%26bui%3DAVNa5-y16_dw0kAmzMEusogYtWycd9MuhusjQnJXXBDoWZJSFFxEPmx1wQYYgEU9_eFCclvWCFCt05WP%26spc%3D6dlaFLKj7efBnrtLkDVO-Kl-DV_3jdOYg9D2zIcOFAc8SNAR1FaG%26vprv%3D1%26svpuc%3D1%26xtags%3Dheaudio%253Dtrue%26mime%3Dvideo%252Fmp4%26rqh%3D1%26cnr%3D14%26ratebypass%3Dyes%26dur%3D203.453%26lmt%3D1695969238039053%26mt%3D1774318657%26fvip%3D2%26fexp%3D51565116%252C51565681%252C51791334%26c%3DANDROID_VR%26txp%3D4538434%26sparams%3Dexpire%252Cei%252Cip%252Cid%252Citag%252Csource%252Crequiressl%252Cxpc%252Cbui%252Cspc%252Cvprv%252Csvpuc%252Cxtags%252Cmime%252Crqh%252Ccnr%252Cratebypass%252Cdur%252Clmt%26sig%3DAHEqNM4wRQIhAK6wybKmhasmhGvzwT-A0m6Rd1se9GDoTjZA0MxcRiIjAiAqdp8rYkh49Znxb06NTzfZwm3T4RQmx3H61ApArbxYpA%253D%253D%26lsparams%3Dcps%252Cmet%252Cmh%252Cmm%252Cmn%252Cms%252Cmv%252Cmvi%252Cpl%252Crms%252Cinitcwndbps%26lsig%3DAPaTxxMwRQIhALp1zJbxfbzQ2GEO7nQzy2u0Dhvaz5_LcCPoKJf-0xkUAiAz3dvSMygNGPD36dkxU48bzkZPs3ZZheM-AELBXvimgQ%253D%253D&filename=The%20Weeknd%20-%20Blinding%20Lights%20|%20Sub%20Español.mp4 HTTP/1.1[0m" 404 -
+2026-03-23 21:26:15,181 - INFO - 127.0.0.1 - - [23/Mar/2026 21:26:15] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+2026-03-23 21:27:13,678 - INFO - 127.0.0.1 - - [23/Mar/2026 21:27:13] "[36mGET / HTTP/1.1[0m" 304 -
+2026-03-23 21:27:13,741 - INFO - 127.0.0.1 - - [23/Mar/2026 21:27:13] "[36mGET /script.js HTTP/1.1[0m" 304 -
+2026-03-23 21:27:23,586 - INFO - \U0001f4e5 Solicitud metadata para: https://www.youtube.com/watch?v=Use44Y1XuAU&list=RDUse44Y1XuAU&start_radio=1
+2026-03-23 21:27:23,761 - INFO - \U0001f50d Extrayendo info de YouTube...
+2026-03-23 21:27:29,959 - INFO - \u2705 Exito: The Weeknd - Blinding Lights | Sub Español
+2026-03-23 21:27:29,960 - INFO - 127.0.0.1 - - [23/Mar/2026 21:27:29] "GET /api/get-metadata?url=https://www.youtube.com/watch?v%3DUse44Y1XuAU%26list%3DRDUse44Y1XuAU%26start_radio%3D1 HTTP/1.1" 200 -
+2026-03-23 21:27:29,970 - INFO - \U0001f4e5 Solicitud descarga para ID: Use44Y1XuAU
+2026-03-23 21:27:30,133 - INFO - \U0001f517 Generando link directo...
+2026-03-23 21:27:38,399 - INFO - 127.0.0.1 - - [23/Mar/2026 21:27:38] "GET /api/get-direct-url?video_id=Use44Y1XuAU HTTP/1.1" 200 -
+2026-03-23 21:27:39,947 - INFO - 127.0.0.1 - - [23/Mar/2026 21:27:39] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
