@@ -3,9 +3,17 @@ import os
 import logging
 import threading
 import time
+import subprocess
 import urllib.request as ureq
 
-# Configurar logging inmediato a un archivo para ver errores de arranque
+# Soporte para PyInstaller y Vercel (Ruta de archivos temporales)
+def get_resource_path(relative_path):
+    if hasattr(sys, '_MEIPASS'):
+        return os.path.join(sys._MEIPASS, relative_path)
+    # En Vercel, el directorio raíz suele ser el correcto
+    return os.path.join(os.path.abspath("."), relative_path)
+
+# Configurar logging
 logging.basicConfig(
     filename='error_log.txt',
     level=logging.DEBUG,
@@ -21,29 +29,22 @@ try:
     from flask_cors import CORS
     import yt_dlp
 except ImportError as e:
-    err_msg = f"\n❌ ERROR: Faltan librerias.\nEjecuta: pip install flask flask-cors yt-dlp pywebview"
-    log_and_print(err_msg)
-    input("Presiona ENTER para salir...")
-    sys.exit(1)
+    log_and_print(f"❌ Error librerias: {e}")
+    # En Vercel las dependencias están en requirements.txt
+    pass
 
-app = Flask(__name__, static_folder='./', static_url_path='')
+static_folder = get_resource_path('.')
+app = Flask(__name__, static_folder=static_folder, template_folder=static_folder)
 CORS(app)
 
-# Rutas de la web
 @app.route('/')
 def serve_index():
     return send_from_directory(app.static_folder, 'index.html')
 
-@app.route('/<path:path>')
-def serve_static(path):
-    full_path = os.path.join(app.static_folder, path)
-    if os.path.exists(full_path):
-        return send_from_directory(app.static_folder, path)
-    return "No encontrado", 404
-
 @app.route('/api/get-metadata')
 def get_metadata():
     url = request.args.get('url')
+    log_and_print(f"📥 Metadata para: {url}")
     try:
         ydl_opts = {'quiet': True, 'noplaylist': True, 'skip_download': True, 'socket_timeout': 10}
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
@@ -54,18 +55,21 @@ def get_metadata():
                 "video_id": info.get('id')
             })
     except Exception as e:
+        log_and_print(f"❌ Error Metadata: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
 @app.route('/api/get-direct-url')
 def get_direct_url():
     video_id = request.args.get('video_id')
     url = f"https://www.youtube.com/watch?v={video_id}"
+    log_and_print(f"📥 Descarga para: {video_id}")
     try:
         ydl_opts = {'format': 'best[ext=mp4]/best', 'quiet': True, 'noplaylist': True, 'socket_timeout': 15}
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=False)
             return jsonify({"url": info.get('url')})
     except Exception as e:
+        log_and_print(f"❌ Error URL: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
 @app.route('/api/proxy-download')
@@ -74,7 +78,7 @@ def proxy_download():
     filename = request.args.get('filename', 'video.mp4')
     try:
         req = ureq.Request(video_url, headers={'User-Agent': 'Mozilla/5.0'})
-        response = ureq.urlopen(req)
+        response = ureq.urlopen(req, timeout=30)
         content_length = response.getheader('Content-Length')
         def generate():
             for chunk in iter(lambda: response.read(1024*64), b""):
@@ -85,22 +89,28 @@ def proxy_download():
     except Exception as e:
         return str(e), 500
 
-def run_flask():
-    app.run(host='127.0.0.1', port=5000, debug=False)
+def find_chrome():
+    paths = [
+        os.path.expandvars(r"%ProgramFiles%\Google\Chrome\Application\chrome.exe"),
+        os.path.expandvars(r"%ProgramFiles(x86)%\Google\Chrome\Application\chrome.exe"),
+        os.path.expandvars(r"%LocalAppData%\Google\Chrome\Application\chrome.exe"),
+    ]
+    for path in paths:
+        if os.path.exists(path): return path
+    return None
+
+def start_ui():
+    time.sleep(2)
+    url = "http://127.0.0.1:5000"
+    chrome_path = find_chrome()
+    if chrome_path:
+        subprocess.Popen([chrome_path, f"--app={url}"])
+    else:
+        import webbrowser
+        webbrowser.open(url)
 
 if __name__ == '__main__':
-    # Lanzar Flask en segundo plano
-    threading.Thread(target=run_flask, daemon=True).start()
-    time.sleep(1.5)
-    
-    # Intentar abrir con WebView (Como App de Escritorio)
-    try:
-        import webview
-        log_and_print("🚀 Iniciando Modo Escritorio...")
-        window = webview.create_window('Fastvideo Local v7.0', 'http://127.0.0.1:5000', width=800, height=800)
-        webview.start()
-    except Exception as e:
-        log_and_print("⚠️ No se pudo iniciar el modo app, usando navegador...")
-        import webbrowser
-        webbrowser.open("http://127.0.0.1:5000")
-        while True: time.sleep(100)
+    # Lanzar UI solo si no estamos en Vercel
+    if not os.environ.get('VERCEL'):
+        threading.Thread(target=start_ui, daemon=True).start()
+    app.run(host='127.0.0.1', port=5000, debug=False)

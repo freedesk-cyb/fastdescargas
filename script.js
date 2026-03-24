@@ -58,7 +58,8 @@ document.getElementById('btn-fetch').addEventListener('click', async () => {
         }
 
     } catch (e) {
-        status.innerHTML = "❌ Error de conexión con el servidor.";
+        console.error("Fetch error:", e);
+        status.innerHTML = `<span style="color:#ff6b6b">❌ Fallo de Conexión:<br>${e.message}</span><br><small>Verifica si el servidor (Vercel o Local) está activo.</small>`;
     }
     
     btnFetch.disabled = false;
